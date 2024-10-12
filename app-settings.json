@@ -1,0 +1,17 @@
+{
+  "scanIgnoredDirs": [
+    "node_modules",
+    "dist",
+    ".git",
+    "target",
+    "bin",
+    "build",
+    "__pycache__",
+    "venv",
+    "out",
+    "pkg",
+    "target",
+    "cargo-cache",
+    "gems"
+  ]
+}

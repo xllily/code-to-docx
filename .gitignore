@@ -1,0 +1,6 @@
+*.tgz
+*.docx
+
+yarn.lock
+
+node_modules
