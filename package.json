@@ -14,14 +14,9 @@
   "author": "xllily",
   "license": "ISC",
   "dependencies": {
-    "chalk-template": "^1.1.0",
     "commander": "^12.1.0",
     "docx": "^9.0.0",
-    "ignore-walk": "^7.0.0",
-    "istextorbinary": "^9.5.0",
-    "mammoth": "^1.8.0",
-    "shiki": "^1.22.0",
-    "zod": "^3.23.8"
+    "mammoth": "^1.8.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.25.7",
