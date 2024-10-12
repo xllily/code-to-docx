@@ -11,15 +11,34 @@
 
 ## Installation
 
-First, clone the repository and install the required dependencies:
+First, you can install the tool globally using npm:
 
 ```sh
+# Install globally from npm
+npm install -g code-to-docx
+```
+
+After installing globally with npm, you can run the tool directly from the command line:
+
+```sh
+code-to-docx -s <source_directory> -t <file_types> -o <output_doc_path>
+```
+
+You can also use the alias `c2d` for convenience:
+
+```sh
+c2d -s <source_directory> -t <file_types> -o <output_doc_path>
+```
+
+Alternatively, you can clone the repository and install the required dependencies:
+
+```sh
+# Clone the repository
+git clone <repository-url>
+
 # Install dependencies (install the `commander`, `docx`, ...)
 yarn install
 ```
-
-## Usage
-
 Run the script using Yarn with the following command:
 
 ```sh
@@ -42,7 +61,13 @@ yarn start -s <source_directory> -t <file_types> -o <output_doc_path>
 ### Example
 
 ```sh
-yarn start -s /path/to/vue-project/src -t .vue,.js -o output.docx
+code-to-docx -s /path/to/vue-project/src -t .vue,.js -o output.docx
+```
+
+or using the alias:
+
+```sh
+c2d -s /path/to/vue-project/src -t .vue,.js -o output.docx
 ```
 
 This command will:
@@ -69,4 +94,3 @@ This command will execute all test cases and provide output about the success or
 ## License
 
 This project is licensed under the MIT License.
-
