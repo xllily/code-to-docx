@@ -19,7 +19,9 @@ program
   // Define option for file types to scan
   .option('-t, --type <file types>', 'Comma-separated list of file types to scan, e.g. ".vue,.js"', '.vue,.js,.jsx,.ts,.tsx')
   // Define option for output file path
-  .option('-o, --output <path>', 'Path to output docx file containing the extracted source code', 'output.docx');
+  .option('-o, --output <path>', 'Path to output docx file containing the extracted source code', 'output.docx')
+  // Define option for lines per page in docx
+  .option('-l, --lines-per-page <number>', 'Number of lines per page in the output docx file', 50);
 
 // Parse the command line arguments
 program.parse();
@@ -51,7 +53,7 @@ async function main() {
     }
 
     // Generate a Word document containing the extracted source code
-    const filePath = await generateWordDoc(options.output, allLines);
+    const filePath = await generateWordDoc(options.output, allLines, options.linesPerPage);
 
     // Log success messages
     console.log("Document generated successfully.");

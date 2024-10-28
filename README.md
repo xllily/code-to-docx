@@ -52,6 +52,7 @@ yarn start -s <source_directory> -t <file_types> -o <output_doc_path>
 | `-s, --source <path>`     | **(Required)** Source directory to scan. This should be the directory containing your source code. It can be an absolute or relative path. |                          |
 | `-t, --type <file_types>` | Comma-separated list of file types to scan, such as `.vue,.js`                                                                             | `.vue,.js,.jsx,.ts,.tsx` |
 | `-o, --output <path>`     | Path to output the `.docx` file containing the extracted source code. This can be an absolute or relative path.                            | `output.docx`            |
+| `-l, --lines-per-page <number>` | Number of lines per page in the output `.docx` file.                        | 50         |
 
 **Notes**:
 

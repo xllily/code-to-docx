@@ -1,8 +1,12 @@
+
 import fs from "fs";
 import path from "path";
 import mammoth from "mammoth";
 import { generateWordDoc } from "./generate.mjs";
 
+/**
+ * Test to check if the generated docx file contains all expected lines.
+ */
 test("Check if generated docx contains all expected lines", async () => {
     // Define the output file path
     const outputFilePath = path.join(__dirname, "test_output.docx");
@@ -29,7 +33,7 @@ test("Check if generated docx contains all expected lines", async () => {
 
     // Split the document content into each line, and remove blank lines and extra spaces
     const lines = docxContent.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-    console.log('docxContent lines:', docxContent)
+    console.log('docxContent lines:', lines);
 
     // Verify that each expected code line is in the generated .docx file
     console.log("Validating lines in the generated docx file...");
