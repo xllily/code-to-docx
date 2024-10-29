@@ -1,7 +1,7 @@
 {
   "name": "code-to-docx",
   "private": false,
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Extract code to generate a docx file",
   "main": "src/index.mjs",
   "bin": {

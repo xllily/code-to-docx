@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
 import { scanSourceFiles } from './utils/scan.mjs';
