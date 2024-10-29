@@ -13,7 +13,7 @@ program
   .name('code-to-docx')
   .alias('c2d')  // code to docx
   .description('Extract code from specified directory and generate docx')
-  .version('1.0.0')
+  .version('1.2.2', '-v, --version', 'Output the current version')
   // Define required option for source directory
   .requiredOption('-s, --source <path>', 'Source directory to scan')
   // Define option for file types to scan
@@ -24,6 +24,12 @@ program
   .option('-l, --lines-per-page <number>', 'Number of lines per page in the output docx file', 50)
   // Define option for ignored directories
   .option('-i, --ignored-dirs <directories>', 'Comma-separated list of directory names to ignore during scanning', '');
+
+// Check if the version option is invoked explicitly
+if (process.argv.includes('-v') || process.argv.includes('--version')) {
+  program.outputHelp();
+  process.exit();
+}
 
 // Parse the command line arguments
 program.parse();
