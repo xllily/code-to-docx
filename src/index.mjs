@@ -13,7 +13,7 @@ program
   .name('code-to-docx')
   .alias('c2d')  // code to docx
   .description('Extract code from specified directory and generate docx')
-  .version('1.2.2', '-v, --version', 'Output the current version')
+  .version(getVersion(), '-v, --version', 'Output the current version')
   // Define required option for source directory
   .requiredOption('-s, --source <path>', 'Source directory to scan')
   // Define option for file types to scan
@@ -29,6 +29,17 @@ program
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
   console.log(program.version());  // Outputs only the version number
   process.exit();
+}
+
+/**
+ * 获取项目的版本号
+ *
+ * @returns {string} 项目的版本号
+ */
+function getVersion() {
+  const packagePath = path.resolve(process.cwd(), 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+  return packageJson.version;
 }
 
 // // Check if the version option is invoked explicitly
