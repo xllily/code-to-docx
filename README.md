@@ -21,13 +21,13 @@ npm install -g code-to-docx
 After installing globally with npm, you can run the tool directly from the command line:
 
 ```sh
-code-to-docx -s <source_directory> -t <file_types> -o <output_doc_path>
+code-to-docx --source <source_directory> --type <file_types> --output <output_doc_path>  --ignored-dirs <ignore_dirs> --lines-per-page <lines_per_page>
 ```
 
 You can also use the alias `c2d` for convenience:
 
 ```sh
-c2d -s <source_directory> -t <file_types> -o <output_doc_path>
+c2d -s <source_directory> -t <file_types> -o <output_doc_path> -i <ignore_dirs> -l <lines_per_page>
 ```
 
 Alternatively, you can clone the repository and install the required dependencies:
@@ -42,7 +42,7 @@ yarn install
 Run the script using Yarn with the following command:
 
 ```sh
-yarn start -s <source_directory> -t <file_types> -o <output_doc_path>
+yarn start -s <source_directory> -t <file_types> -o <output_doc_path> -i <ignore_dirs> -l <lines_per_page>
 ```
 
 ### Parameters
