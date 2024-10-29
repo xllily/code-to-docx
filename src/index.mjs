@@ -27,9 +27,17 @@ program
 
 // Check if the version option is invoked explicitly
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
-  program.outputHelp();
+  console.log(program.version());  // Outputs only the version number
   process.exit();
 }
+
+// // Check if the version option is invoked explicitly
+// if (process.argv.includes('-h') || process.argv.includes('--help')) {
+//   program.outputHelp();
+//   process.exit();
+// }
+
+
 
 // Parse the command line arguments
 program.parse();
