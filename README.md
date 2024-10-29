@@ -47,12 +47,14 @@ yarn start -s <source_directory> -t <file_types> -o <output_doc_path>
 
 ### Parameters
 
-| Parameter                 | Description                                                                                                                                | Default                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| `-s, --source <path>`     | **(Required)** Source directory to scan. This should be the directory containing your source code. It can be an absolute or relative path. |                          |
-| `-t, --type <file_types>` | Comma-separated list of file types to scan, such as `.vue,.js`                                                                             | `.vue,.js,.jsx,.ts,.tsx` |
-| `-o, --output <path>`     | Path to output the `.docx` file containing the extracted source code. This can be an absolute or relative path.                            | `output.docx`            |
-| `-l, --lines-per-page <number>` | Number of lines per page in the output `.docx` file.                        | 50         |
+| Parameter                      | Description                                                                                                                                                      | Default                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `-s, --source <path>`          | **(Required)** Source directory to scan. This should be the directory containing your source code. It can be an absolute or relative path.                       |                                        |
+| `-t, --type <file_types>`      | Comma-separated list of file types to scan, such as `.vue,.js`.                                                                                                   | `.vue,.js,.jsx,.ts,.tsx`               |
+| `-o, --output <path>`          | Path to output the `.docx` file containing the extracted source code. This can be an absolute or relative path.                                                   | `output.docx`                          |
+| `-l, --lines-per-page <number>`| Number of lines per page in the output `.docx` file.                                                                                                             | 50                                     |
+| `-i, --ignored-dirs <directories>` | Comma-separated list of directory names to ignore during scanning. If you specify additional directories, they will be merged with the default list (duplicates will be removed). | `"node_modules,dist,.git,target,bin,build,__pycache__,venv,out,pkg,cargo-cache,gems"` |
+
 
 **Notes**:
 

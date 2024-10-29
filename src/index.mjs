@@ -21,7 +21,9 @@ program
   // Define option for output file path
   .option('-o, --output <path>', 'Path to output docx file containing the extracted source code', 'output.docx')
   // Define option for lines per page in docx
-  .option('-l, --lines-per-page <number>', 'Number of lines per page in the output docx file', 50);
+  .option('-l, --lines-per-page <number>', 'Number of lines per page in the output docx file', 50)
+  // Define option for ignored directories
+  .option('-i, --ignored-dirs <directories>', 'Comma-separated list of directory names to ignore during scanning', '');
 
 // Parse the command line arguments
 program.parse();
@@ -41,8 +43,10 @@ async function main() {
   try {
     // Split and trim the file types option to get an array of file types
     const fileTypes = options.type.split(',').map(type => type.trim());
+    // Split and trim the dirs option to get an array of ignored dirs
+    const ignoredDirs = options.ignoredDirs ? options.ignoredDirs.split(',').map(dir => dir.trim()) : [];
     // Scan the source directory for files of the specified types and extract source code lines
-    const allLines = await scanSourceFiles(options.source, fileTypes);
+    const allLines = await scanSourceFiles(options.source, fileTypes, ignoredDirs);
     // Calculate the total number of extracted lines
     const totalLines = allLines.length;
 

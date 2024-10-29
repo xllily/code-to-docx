@@ -14,8 +14,8 @@ const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
  * @param {string[]} fileTypes - An array of file types to scan, e.g., ['.vue', '.js', '.jsx', '.ts', '.tsx'].
  * @returns {Promise<string[]>} A promise that resolves to an array of extracted source code lines.
  */
-export async function scanSourceFiles(dir, fileTypes) {
-  const IGNORED_DIRS = settings.scanIgnoredDirs;
+export async function scanSourceFiles(dir, fileTypes, ignoredDirs) {
+  const IGNORED_DIRS = [...new Set([...settings.scanIgnoredDirs, ...ignoredDirs])];
 
   let fileLines = [];
   const files = await fs.promises.readdir(dir, { withFileTypes: true });
