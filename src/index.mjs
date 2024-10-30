@@ -2,7 +2,7 @@
 
 import path from 'path';
 import { Command } from 'commander';
-import { version } from './version.js';
+import { version } from './version.mjs';
 import { scanSourceFiles } from './utils/scan.mjs';
 import { generateWordDoc } from './utils/generate.mjs';
 
