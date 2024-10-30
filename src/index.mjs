@@ -2,7 +2,7 @@
 
 import path from 'path';
 import { Command } from 'commander';
-import { getVersion } from './utils/common.mjs';
+import { version } from './version.js';
 import { scanSourceFiles } from './utils/scan.mjs';
 import { generateWordDoc } from './utils/generate.mjs';
 
@@ -14,7 +14,7 @@ program
   .name('code-to-docx')
   .alias('c2d')  // code to docx
   .description('Extract code from specified directory and generate docx')
-  .version(getVersion(), '-v, --version', 'Output the current version')
+  .version(version ?? process.env.npm_package_version, '-v, --version', 'Output the current version')
   // Define required option for source directory
   .requiredOption('-s, --source <path>', 'Source directory to scan')
   // Define option for file types to scan
