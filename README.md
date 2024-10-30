@@ -1,13 +1,36 @@
-# Code to docx
+# code-to-docx
 
-## Description
+<!-- [![Build Status](https://img.shields.io/github/actions/workflow/status/xllily/code-to-docx/ci.yml?branch=main)](https://github.com/xllily/code-to-docx/actions) -->
+<!-- [![Coverage](https://img.shields.io/codecov/c/github/xllily/code-to-docx/main)](https://codecov.io/gh/xllily/code-to-docx) -->
+[![Downloads](https://img.shields.io/npm/dw/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
+[![NPM Version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
+[![License](https://img.shields.io/npm/l/code-to-docx)](https://github.com/xllily/code-to-docx/blob/main/LICENSE)
+<!-- [![Chat](https://img.shields.io/discord/yourdiscordid)](https://discord.gg/yourdiscordlink) -->
 
-`code-to-docx` is a command-line tool that allows you to scan a specified directory for source code files and generate a `.docx` document containing the extracted code. It is particularly useful for generating documentation for projects, including code samples from the entire content of the project.
+## Overview
 
-## Features
+`code-to-docx` is a powerful command-line tool designed to scan a specified directory for source code files and generate a `.docx` document containing the extracted code. With options for customizable output, this tool is ideal for creating documentation that includes complete, formatted code samples. You can specify the number of lines per page in the generated document and easily exclude directories as needed, making it a flexible solution for project documentation.
 
-- Scan a specified directory and extract code from specific file types (e.g., `.vue`, `.js`, `.ts`).
-- Generate a `.docx` document containing all the source code from the specified directory.
+### Key Features
+- **Directory Scanning**: Automatically scans all files in a specified directory.
+- **Code Extraction**: Extracts code from various file formats and languages.
+- **.docx Generation**: Outputs code in a structured, styled Word document.
+- **Page Customization**: Allows you to specify the number of lines per page in the generated document for better readability and control over document length.
+- **Directory Ignoring**: Provides options to specify directories to ignore during scanning, giving you flexibility in excluding certain folders from the final output.
+- **Ideal for Documentation**: Simplifies the process of generating reference materials.
+
+## Overview
+
+`code-to-docx` is a powerful command-line tool designed to scan a specified directory for source code files and generate a `.docx` document containing the extracted code. With options for customizable output, this tool is ideal for creating documentation that includes complete, formatted code samples. You can specify the number of lines per page in the generated document and easily exclude files or directories as needed, making it a flexible solution for project documentation.
+
+### Key Features
+- **Directory Scanning**: Automatically scans all files in a specified directory.
+- **Code Extraction**: Extracts code from various file formats and languages.
+- **`.docx` Generation**: Outputs code in a structured, styled Word document.
+- **Page Customization**: Allows you to specify the number of lines per page in the generated document for better readability and control over document length.
+- **Directory Ignoring**: : Provides options to specify directories to ignore during scanning, giving you flexibility in excluding certain folders from the final output.
+- **Ideal for Documentation**: Simplifies the process of generating reference materials.
+
 
 ## Installation
 
