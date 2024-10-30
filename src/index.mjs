@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
 import path from 'path';
 import { Command } from 'commander';
+import { getVersion } from './utils/common.mjs';
 import { scanSourceFiles } from './utils/scan.mjs';
 import { generateWordDoc } from './utils/generate.mjs';
 
@@ -32,24 +32,11 @@ if (process.argv.includes('-v') || process.argv.includes('--version')) {
   process.exit();
 }
 
-/**
- * 获取项目的版本号
- *
- * @returns {string} 项目的版本号
- */
-function getVersion() {
-  const packagePath = path.resolve(process.cwd(), 'package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
-  return packageJson.version;
-}
-
 // // Check if the version option is invoked explicitly
 // if (process.argv.includes('-h') || process.argv.includes('--help')) {
 //   program.outputHelp();
 //   process.exit();
 // }
-
-
 
 // Parse the command line arguments
 program.parse();
@@ -69,8 +56,10 @@ async function main() {
   try {
     // Split and trim the file types option to get an array of file types
     const fileTypes = options.type.split(',').map(type => type.trim());
+    console.log('fileTypes:', fileTypes);
     // Split and trim the dirs option to get an array of ignored dirs
     const ignoredDirs = options.ignoredDirs ? options.ignoredDirs.split(',').map(dir => dir.trim()) : [];
+    console.log('ignoredDirs:', ignoredDirs);
     // Scan the source directory for files of the specified types and extract source code lines
     const allLines = await scanSourceFiles(options.source, fileTypes, ignoredDirs);
     // Calculate the total number of extracted lines
@@ -97,3 +86,4 @@ async function main() {
 
 // Call the main function to start the program
 main();
+

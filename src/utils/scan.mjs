@@ -29,7 +29,7 @@ export async function scanSourceFiles(dir, fileTypes, ignoredDirs) {
         continue;
       }
 
-      const subDirLines = await scanSourceFiles(fullPath, fileTypes);
+      const subDirLines = await scanSourceFiles(fullPath, fileTypes, ignoredDirs);
       fileLines = fileLines.concat(subDirLines);
     } else if (file.isFile() && fileTypes.some(type => file.name.endsWith(type))) {
       const lines = await readLines(fullPath);
