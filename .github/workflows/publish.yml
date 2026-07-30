@@ -1,10 +1,9 @@
-name: Publish npm package
+name: Publish release
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: read
@@ -24,17 +23,42 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - id: package
-        name: Check whether this version is already published
+        name: Validate tag, main ancestry, and package version
         shell: bash
         run: |
+          release_tag="${GITHUB_REF_NAME}"
+          release_commit=$(git rev-list -n 1 "${GITHUB_REF}")
           package_name=$(node -p "require('./package.json').name")
           package_version=$(node -p "require('./package.json').version")
+
+          if [[ ! "$release_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag must be a SemVer tag such as v1.4.0; got $release_tag" >&2
+            exit 1
+          fi
+
+          if [[ "$(git cat-file -t "${GITHUB_REF}")" != "tag" ]]; then
+            echo "Release tag $release_tag must be annotated." >&2
+            exit 1
+          fi
+
+          if [[ "$release_tag" != "v$package_version" ]]; then
+            echo "Tag $release_tag does not match $package_name@$package_version." >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$release_commit" refs/remotes/origin/main; then
+            echo "Release commit $release_commit is not on main." >&2
+            exit 1
+          fi
 
           echo "name=$package_name" >> "$GITHUB_OUTPUT"
           echo "version=$package_version" >> "$GITHUB_OUTPUT"
@@ -55,8 +79,39 @@ jobs:
             exit "$view_status"
           fi
 
-  publish:
+  draft_release:
     needs: release_gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create or verify the draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          SHOULD_PUBLISH: ${{ needs.release_gate.outputs.should_publish }}
+        shell: bash
+        run: |
+          if release_json=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft 2>/dev/null); then
+            echo "$release_json"
+            if [[ "$SHOULD_PUBLISH" == "true" && "$(jq -r .isDraft <<< "$release_json")" != "true" ]]; then
+              echo "GitHub Release $RELEASE_TAG is already public while npm is unpublished." >&2
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --draft \
+              --generate-notes \
+              --title "$RELEASE_TAG"
+          fi
+
+  publish:
+    needs:
+      - release_gate
+      - draft_release
     if: needs.release_gate.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -74,4 +129,45 @@ jobs:
       - run: npm test
       - run: npm run test:package
       - name: Publish ${{ needs.release_gate.outputs.package_name }}@${{ needs.release_gate.outputs.package_version }}
-        run: npm publish
+        run: npm publish --access public
+
+  finalize_release:
+    needs:
+      - release_gate
+      - draft_release
+      - publish
+    if: >-
+      always() &&
+      needs.release_gate.result == 'success' &&
+      needs.draft_release.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Verify the public npm package
+        env:
+          PACKAGE_NAME: ${{ needs.release_gate.outputs.package_name }}
+          PACKAGE_VERSION: ${{ needs.release_gate.outputs.package_version }}
+        run: npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if [[ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" == "true" ]]; then
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft=false \
+              --latest
+          fi
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json tagName,isDraft,url
