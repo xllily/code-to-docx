@@ -71,6 +71,7 @@ function createProgram() {
     .option("--max-total-size <bytes>", "Maximum bytes across matching files", "25000000")
     .option("--dry-run", "Print the manifest without writing a DOCX", false)
     .option("--json", "Emit machine-readable JSON", false)
+    .option("-p, --pure", "Omit line, byte, and SHA-256 metadata from the DOCX", false)
     .option("--quiet", "Suppress human-readable success output", false);
 }
 
@@ -116,7 +117,10 @@ export async function runCli(argv = process.argv) {
 
     let generated;
     if (!options.dryRun) {
-      generated = await generateWordDoc(options.output, scan.files, { linesPerPage });
+      generated = await generateWordDoc(options.output, scan.files, {
+        linesPerPage,
+        pure: options.pure,
+      });
     }
 
     const payload = {

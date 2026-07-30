@@ -20,6 +20,7 @@ function sourceLines(content) {
  */
 export async function generateWordDoc(filePath, sourceFiles, options = {}) {
   const linesPerPage = options.linesPerPage ?? 50;
+  const pure = options.pure ?? false;
   const outputPath = path.resolve(filePath);
   const paragraphs = [
     new Paragraph({
@@ -36,8 +37,10 @@ export async function generateWordDoc(filePath, sourceFiles, options = {}) {
       heading: HeadingLevel.HEADING_1,
       pageBreakBefore: paragraphs.length > 2,
     }));
-    paragraphs.push(new Paragraph(`${sourceFile.lineCount} lines · ${sourceFile.byteCount} bytes`));
-    paragraphs.push(new Paragraph(`SHA-256: ${sourceFile.sha256}`));
+    if (!pure) {
+      paragraphs.push(new Paragraph(`${sourceFile.lineCount} lines · ${sourceFile.byteCount} bytes`));
+      paragraphs.push(new Paragraph(`SHA-256: ${sourceFile.sha256}`));
+    }
 
     for (const line of sourceLines(sourceFile.content)) {
       paragraphs.push(new Paragraph({
