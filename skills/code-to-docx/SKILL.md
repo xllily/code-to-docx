@@ -57,6 +57,7 @@ Use the `code-to-docx` CLI as the archive engine. Preview the exact manifest bef
 | --- | --- |
 | See current options | Run `code-to-docx --help` |
 | Preview included files | Add `--dry-run --json` |
+| Omit audit metadata from the DOCX | Add `--pure` or `-p` |
 | Exclude tests | Add `--ignored-files '*.test.*,*.spec.*'` |
 | Restrict languages | Add `--type .js,.mjs,.ts,.tsx` |
 | Automate safely | Require exit `0`, `ok: true`, then run the verifier |

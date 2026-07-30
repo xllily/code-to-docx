@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { spawnSync } from "child_process";
+import mammoth from "mammoth";
 
 const cliPath = path.resolve(process.cwd(), "src/index.mjs");
 const permissionTest = process.platform === "win32" || process.getuid?.() === 0 ? test.skip : test;
@@ -69,6 +70,30 @@ describe("code-to-docx CLI", () => {
     });
     expect(payload.outputBytes).toBeGreaterThan(0);
     expect(fs.statSync(outputPath).size).toBe(payload.outputBytes);
+  });
+
+  test("supports -p pure output without removing metadata from the JSON summary", async () => {
+    const outputPath = path.join(fixtureRoot, "artifacts", "pure.docx");
+    const result = runCli([
+      "--source", fixtureRoot,
+      "--type", ".mjs",
+      "--ignored-files", "*.test.mjs",
+      "--output", outputPath,
+      "-p",
+      "--json",
+    ]);
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.files[0].sha256).toMatch(/^[a-f0-9]{64}$/);
+
+    const buffer = await fs.promises.readFile(outputPath);
+    const documentText = (await mammoth.extractRawText({ buffer })).value;
+    expect(documentText).toContain("src/main.mjs");
+    expect(documentText).toContain("export const answer = 42;");
+    expect(documentText).not.toContain("lines ·");
+    expect(documentText).not.toContain("SHA-256:");
+    expect(documentText).not.toContain(payload.files[0].sha256);
   });
 
   test("returns a scan error when the source directory does not exist", () => {
