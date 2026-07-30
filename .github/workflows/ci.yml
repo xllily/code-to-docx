@@ -12,6 +12,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate pull request branch lifecycle
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          semver='v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?'
+
+          if [[ "$BASE_BRANCH" == "main" ]]; then
+            [[ "$HEAD_BRANCH" =~ ^(release|hotfix)/$semver$ ]] || {
+              echo "Pull requests into main must come from release/vX.Y.Z or hotfix/vX.Y.Z." >&2
+              exit 1
+            }
+          elif [[ "$BASE_BRANCH" == "develop" ]]; then
+            [[ "$HEAD_BRANCH" == "main" || "$HEAD_BRANCH" =~ ^(feat|fix|docs|chore|codex)/.+$ ]] || {
+              echo "Pull requests into develop must come from main or an approved topic branch." >&2
+              exit 1
+            }
+          else
+            echo "Pull requests must target main or develop." >&2
+            exit 1
+          fi
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -25,17 +52,70 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
-      - run: npm test
+      - if: matrix.node-version != 24
+        run: npm test
+      - if: matrix.node-version == 24
+        run: npm run test:coverage
       - run: node src/index.mjs --help
 
-  package-smoke:
+  package:
     runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.package.outputs.version }}
 
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+          package-manager-cache: false
       - run: npm ci
-      - run: npm run test:package
+      - id: package
+        name: Pack the release candidate exactly once
+        shell: bash
+        run: |
+          mkdir -p dist
+          npm pack --json --pack-destination dist > pack-result.json
+          tarball=$(node -p "require('./pack-result.json')[0].filename")
+          mv "dist/$tarball" dist/package.tgz
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          sha512sum dist/package.tgz > dist/package.tgz.sha512
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: |
+            dist/package.tgz
+            dist/package.tgz.sha512
+          if-no-files-found: error
+          retention-days: 7
+
+  package-smoke:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node-version: 18
+          - os: ubuntu-latest
+            node-version: 24
+          - os: windows-latest
+            node-version: 22
+          - os: macos-latest
+            node-version: 22
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: dist
+      - run: >-
+          npm run test:artifact --
+          --tarball dist/package.tgz
+          --expected-version ${{ needs.package.outputs.package_version }}

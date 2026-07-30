@@ -22,6 +22,11 @@ For behavior changes, add a failing test first, implement the smallest fix, and 
 
 ## Pull requests
 
+- Create `feat/*`, `fix/*`, `docs/*`, `chore/*`, and `codex/*` branches from `develop` and target `develop` with the pull request.
+- Keep `main` and `develop` permanent. Do not commit directly to either branch.
+- Use `release/vX.Y.Z` or `hotfix/vX.Y.Z` for the only pull requests that target `main`.
+- Use merge commits for pull requests so release and synchronization ancestry remains auditable.
+- Delete temporary branches after merge. GitHub should automatically delete merged head branches; run `git fetch --prune` to remove stale local tracking refs.
 - Keep each pull request focused on one problem.
 - Explain the user-visible behavior and compatibility impact.
 - Add tests for successful, invalid-input, and failure paths where applicable.
@@ -32,12 +37,15 @@ By contributing, you agree that your contribution is licensed under the MIT Lice
 
 ## Releases
 
-The `publish.yml` workflow publishes a package version only when all of these conditions are true:
+See [RELEASING.md](RELEASING.md) for the complete branch, version, tagging, cleanup, hotfix, and rollback model.
 
-- a commit reaches `main` in `xllily/code-to-docx`;
+The `publish.yml` workflow stages a release candidate and creates a draft GitHub Release only when all of these conditions are true:
+
+- an annotated SemVer tag such as `v1.4.0` points to a commit on `main`;
+- the tag exactly matches the version in `package.json`;
 - the version in `package.json` does not already exist on npm;
-- unit tests and the clean-install package smoke test pass;
-- npm accepts the workflow's short-lived OIDC credential.
+- coverage and the exact-tarball compatibility matrix pass;
+- npm accepts the workflow's short-lived OIDC credential for staged publishing.
 
 Before merging the first release-enabled pull request, configure the npm package's trusted publisher with:
 
@@ -45,6 +53,7 @@ Before merging the first release-enabled pull request, configure the npm package
 - organization or user: `xllily`;
 - repository: `code-to-docx`;
 - workflow filename: `publish.yml`;
-- allowed action: `npm publish`.
+- environment: `npm-stage`;
+- allowed action: `npm stage publish` only.
 
-No `NPM_TOKEN` secret is required. If trusted publishing is configured after a merge, run the **Publish npm package** workflow manually; already-published versions are detected and skipped.
+No `NPM_TOKEN` secret is required. Configure the `npm-stage` GitHub environment with required review and tag-only deployment rules. A push to `main` alone never stages or publishes a package.
