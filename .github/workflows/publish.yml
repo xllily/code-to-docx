@@ -1,4 +1,4 @@
-name: Publish release
+name: Stage release candidate
 
 on:
   push:
@@ -19,7 +19,8 @@ jobs:
     outputs:
       package_name: ${{ steps.package.outputs.name }}
       package_version: ${{ steps.package.outputs.version }}
-      should_publish: ${{ steps.package.outputs.should_publish }}
+      release_commit: ${{ steps.package.outputs.release_commit }}
+      should_stage: ${{ steps.package.outputs.should_stage }}
 
     steps:
       - uses: actions/checkout@v6
@@ -62,6 +63,7 @@ jobs:
 
           echo "name=$package_name" >> "$GITHUB_OUTPUT"
           echo "version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "release_commit=$release_commit" >> "$GITHUB_OUTPUT"
 
           set +e
           npm view "$package_name@$package_version" version --json > published-version.json 2> npm-view-error.log
@@ -69,18 +71,58 @@ jobs:
           set -e
 
           if [[ $view_status -eq 0 ]]; then
-            echo "Version $package_name@$package_version is already published; skipping."
-            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "Version $package_name@$package_version is already public; skipping staging."
+            echo "should_stage=false" >> "$GITHUB_OUTPUT"
           elif grep -q "E404" npm-view-error.log; then
-            echo "Version $package_name@$package_version is new and ready to publish."
-            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "Version $package_name@$package_version is new and ready to stage."
+            echo "should_stage=true" >> "$GITHUB_OUTPUT"
           else
             cat npm-view-error.log >&2
             exit "$view_status"
           fi
 
-  draft_release:
+  package:
     needs: release_gate
+    runs-on: ubuntu-latest
+    outputs:
+      tarball: ${{ steps.package.outputs.tarball }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run test:coverage
+      - id: package
+        name: Pack and accept the exact release candidate
+        env:
+          PACKAGE_VERSION: ${{ needs.release_gate.outputs.package_version }}
+        shell: bash
+        run: |
+          mkdir -p dist
+          npm pack --json --pack-destination dist > pack-result.json
+          tarball=$(node -p "require('./pack-result.json')[0].filename")
+          npm run test:artifact -- \
+            --tarball "dist/$tarball" \
+            --expected-version "$PACKAGE_VERSION"
+          sha512sum "dist/$tarball" > "dist/$tarball.sha512"
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate-${{ needs.release_gate.outputs.package_version }}
+          path: |
+            dist/${{ steps.package.outputs.tarball }}
+            dist/${{ steps.package.outputs.tarball }}.sha512
+          if-no-files-found: error
+          retention-days: 30
+
+  draft_release:
+    needs:
+      - release_gate
+      - package
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -90,13 +132,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-          SHOULD_PUBLISH: ${{ needs.release_gate.outputs.should_publish }}
+          SHOULD_STAGE: ${{ needs.release_gate.outputs.should_stage }}
         shell: bash
         run: |
           if release_json=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft 2>/dev/null); then
             echo "$release_json"
-            if [[ "$SHOULD_PUBLISH" == "true" && "$(jq -r .isDraft <<< "$release_json")" != "true" ]]; then
-              echo "GitHub Release $RELEASE_TAG is already public while npm is unpublished." >&2
+            if [[ "$SHOULD_STAGE" == "true" && "$(jq -r .isDraft <<< "$release_json")" != "true" ]]; then
+              echo "GitHub Release $RELEASE_TAG is already public while npm is not public." >&2
               exit 1
             fi
           else
@@ -108,66 +150,35 @@ jobs:
               --title "$RELEASE_TAG"
           fi
 
-  publish:
+  stage:
     needs:
       - release_gate
+      - package
       - draft_release
-    if: needs.release_gate.outputs.should_publish == 'true'
+    if: needs.release_gate.outputs.should_stage == 'true'
     runs-on: ubuntu-latest
+    environment: npm-stage
     permissions:
       contents: read
       id-token: write
 
     steps:
-      - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm ci
-      - run: npm test
-      - run: npm run test:package
-      - name: Publish ${{ needs.release_gate.outputs.package_name }}@${{ needs.release_gate.outputs.package_version }}
-        run: npm publish --access public
-
-  finalize_release:
-    needs:
-      - release_gate
-      - draft_release
-      - publish
-    if: >-
-      always() &&
-      needs.release_gate.result == 'success' &&
-      needs.draft_release.result == 'success' &&
-      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/setup-node@v6
+      - name: Use an npm CLI with staged publishing support
+        run: npm install --global npm@11.19.0
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      - name: Verify the public npm package
+          name: npm-release-candidate-${{ needs.release_gate.outputs.package_version }}
+          path: dist
+      - name: Stage ${{ needs.release_gate.outputs.package_name }}@${{ needs.release_gate.outputs.package_version }} under next
         env:
-          PACKAGE_NAME: ${{ needs.release_gate.outputs.package_name }}
-          PACKAGE_VERSION: ${{ needs.release_gate.outputs.package_version }}
-        run: npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version --registry=https://registry.npmjs.org
-      - name: Publish the GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        shell: bash
+          TARBALL: ${{ needs.package.outputs.tarball }}
         run: |
-          if [[ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" == "true" ]]; then
-            gh release edit "$RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --draft=false \
-              --latest
-          fi
-          gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json tagName,isDraft,url
+          npm stage publish "./dist/$TARBALL" --tag next --access public
+          echo "### npm candidate staged" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download and accept the staged tarball before approving it with 2FA." >> "$GITHUB_STEP_SUMMARY"
+          echo "After approval, run the public-registry regression before moving latest or publishing the GitHub Release." >> "$GITHUB_STEP_SUMMARY"

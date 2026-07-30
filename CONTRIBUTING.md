@@ -39,13 +39,13 @@ By contributing, you agree that your contribution is licensed under the MIT Lice
 
 See [RELEASING.md](RELEASING.md) for the complete branch, version, tagging, cleanup, hotfix, and rollback model.
 
-The `publish.yml` workflow publishes a package version and finalizes its GitHub Release only when all of these conditions are true:
+The `publish.yml` workflow stages a release candidate and creates a draft GitHub Release only when all of these conditions are true:
 
 - an annotated SemVer tag such as `v1.4.0` points to a commit on `main`;
 - the tag exactly matches the version in `package.json`;
 - the version in `package.json` does not already exist on npm;
-- unit tests and the clean-install package smoke test pass;
-- npm accepts the workflow's short-lived OIDC credential.
+- coverage and the exact-tarball compatibility matrix pass;
+- npm accepts the workflow's short-lived OIDC credential for staged publishing.
 
 Before merging the first release-enabled pull request, configure the npm package's trusted publisher with:
 
@@ -53,6 +53,7 @@ Before merging the first release-enabled pull request, configure the npm package
 - organization or user: `xllily`;
 - repository: `code-to-docx`;
 - workflow filename: `publish.yml`;
-- allowed action: `npm publish`.
+- environment: `npm-stage`;
+- allowed action: `npm stage publish` only.
 
-No `NPM_TOKEN` secret is required. A push to `main` alone never publishes; publishing begins only when the verified annotated tag is pushed.
+No `NPM_TOKEN` secret is required. Configure the `npm-stage` GitHub environment with required review and tag-only deployment rules. A push to `main` alone never stages or publishes a package.

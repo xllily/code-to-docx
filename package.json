@@ -11,9 +11,11 @@
   "scripts": {
     "start": "node src/index.mjs",
     "prepack": "node scripts/generate-version.js",
-    "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage",
-    "test:package": "node tests/package-smoke.mjs"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
+    "test:artifact": "node tests/package-artifact-regression.mjs",
+    "test:package": "node tests/package-smoke.mjs",
+    "test:published": "node tests/published-package-regression.mjs"
   },
   "author": "xllily",
   "license": "MIT",

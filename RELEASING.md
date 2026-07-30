@@ -44,8 +44,34 @@ Do not open a direct `develop` to `main` release pull request. A temporary `rele
    git push origin vX.Y.Z
    ```
 
-7. The tag-triggered workflow creates a draft GitHub Release, publishes npm through OIDC, verifies the public package, and only then publishes the GitHub Release.
-8. Synchronize `main` back into `develop` with a merge commit, then delete `release/vX.Y.Z` locally and remotely.
+7. The tag-triggered workflow packs once, tests that exact tarball, creates a draft GitHub Release, and submits the tarball with `npm stage publish --tag next`. It must stop before public publication.
+8. From an authenticated maintainer workstation, list and inspect the staged package, download its tarball, and run the repository contract against that exact file:
+
+   ```sh
+   npm stage list code-to-docx
+   npm stage view <stage-id>
+   npm stage download <stage-id>
+   npm run test:artifact -- --tarball <downloaded-tarball> --expected-version X.Y.Z
+   ```
+
+9. After the staged tarball passes, approve it with interactive 2FA. Then wait for the exact public version and run the independent registry regression against release commit `R`:
+
+   ```sh
+   npm stage approve <stage-id>
+   npm run test:published -- --version X.Y.Z --expected-sha R
+   ```
+
+10. Record the previous `latest`, request explicit approval, then promote the accepted version and publish the existing draft GitHub Release. Verify both pointers afterward:
+
+    ```sh
+    npm view code-to-docx dist-tags --json
+    npm dist-tag add code-to-docx@X.Y.Z latest
+    npm view code-to-docx@latest version
+    gh release edit vX.Y.Z --draft=false --latest
+    gh release view vX.Y.Z --json tagName,isDraft,isLatest,url
+    ```
+
+11. Synchronize `main` back into `develop` with a merge commit, then delete `release/vX.Y.Z` locally and remotely.
 
 Never move or reuse a published tag. The `vX.Y.Z` tag, npm `X.Y.Z`, package manifests, GitHub Release, workflow run, and commit `R` must describe the same release.
 
@@ -79,8 +105,10 @@ Do not bulk-delete with unresolved globs, use `git branch -D` as routine cleanup
 - Block force pushes and branch deletion on permanent branches.
 - Enable automatic deletion of merged head branches.
 - Protect `v*` tags from update or deletion when repository rulesets are available.
+- Protect the `npm-stage` environment with required reviewers, prevent self-review when practical, and restrict deployment to protected `v*` tags.
+- Configure npm Trusted Publishing for `publish.yml`, environment `npm-stage`, and the `npm stage publish` action only. Disallow token-based publishing.
 - Use merge commits for topic pull requests into `develop`, release/hotfix pull requests into `main`, and synchronization from `main` back into `develop`.
 
 ## Recovery
 
-Record the previous known-good tag before publishing. If a release is defective, restore the npm `latest` dist-tag to that known-good version, deprecate the bad npm version, mark the GitHub Release clearly, and publish a corrected patch. Do not unpublish routinely, force-move tags, or rewrite shared history.
+Before staged approval, reject a failing candidate and leave the GitHub Release in draft. After approval, never move `latest` until `test:published` passes. If an already-promoted release is defective, restore the previous known-good `latest` dist-tag, deprecate the bad npm version, mark the GitHub Release clearly, and publish a corrected patch. Do not unpublish routinely, force-move tags, or rewrite shared history.

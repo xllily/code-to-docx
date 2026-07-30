@@ -6,7 +6,14 @@ module.exports = {
         "**/?(*.)+(spec|test).[tj]s?(x)",
         "**/?(*.)+(spec|test).mjs",
     ],
-    transform: {
-        "^.+\\.(m?js)$": "babel-jest",
+    collectCoverageFrom: ["src/utils/**/*.mjs"],
+    coverageThreshold: {
+        global: {
+            statements: 80,
+            branches: 65,
+            functions: 90,
+            lines: 80,
+        },
     },
+    transform: {},
 };
