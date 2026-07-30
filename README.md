@@ -1,122 +1,139 @@
 # code-to-docx
 
-<!-- [![Build Status](https://img.shields.io/github/actions/workflow/status/xllily/code-to-docx/ci.yml?branch=main)](https://github.com/xllily/code-to-docx/actions) -->
-<!-- [![Coverage](https://img.shields.io/codecov/c/github/xllily/code-to-docx/main)](https://codecov.io/gh/xllily/code-to-docx) -->
+[![CI](https://github.com/xllily/code-to-docx/actions/workflows/ci.yml/badge.svg)](https://github.com/xllily/code-to-docx/actions/workflows/ci.yml)
 [![Downloads](https://img.shields.io/npm/dw/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
-[![NPM Version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
-[![License](https://img.shields.io/npm/l/code-to-docx)](https://github.com/xllily/code-to-docx/blob/main/LICENSE)
-<!-- [![Chat](https://img.shields.io/discord/yourdiscordid)](https://discord.gg/yourdiscordlink) -->
+[![npm version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
+[![License](https://img.shields.io/npm/l/code-to-docx)](LICENSE)
 
-## Overview
+Create an auditable Word archive from a source tree. `code-to-docx` preserves file boundaries, comments, indentation, and blank lines; embeds per-file SHA-256 hashes; and exposes deterministic JSON output for coding agents and automation.
 
-`code-to-docx` is a powerful command-line tool designed to scan a specified directory for source code files and generate a `.docx` document containing the extracted code. With options for customizable output, this tool is ideal for creating documentation that includes complete, formatted code samples. You can specify the number of lines per page in the generated document and easily exclude directories as needed, making it a flexible solution for project documentation.
+## Why code-to-docx
 
-### Key Features
-- **Directory Scanning**: Automatically scans all files in a specified directory.
-- **Code Extraction**: Extracts code from various file formats and languages.
-- **.docx Generation**: Outputs code in a structured, styled Word document.
-- **Page Customization**: Allows you to specify the number of lines per page in the generated document for better readability and control over document length.
-- **Directory Ignoring**: Provides options to specify directories to ignore during scanning, giving you flexibility in excluding certain folders from the final output.
-- **Ideal for Documentation**: Simplifies the process of generating reference materials.
+- Generate a `.docx` handoff for review, teaching, delivery, compliance, or offline reading.
+- Keep every source file in a named section instead of flattening files together.
+- Preview the exact manifest with `--dry-run` before writing or sharing a document.
+- Exclude common secret filenames and generated directories by default.
+- Use stable exit codes and `--json` in agents, CI, and shell automation.
 
-## Overview
+## Quick start
 
-`code-to-docx` is a powerful command-line tool designed to scan a specified directory for source code files and generate a `.docx` document containing the extracted code. With options for customizable output, this tool is ideal for creating documentation that includes complete, formatted code samples. You can specify the number of lines per page in the generated document and easily exclude files or directories as needed, making it a flexible solution for project documentation.
-
-### Key Features
-- **Directory Scanning**: Automatically scans all files in a specified directory.
-- **Code Extraction**: Extracts code from various file formats and languages.
-- **`.docx` Generation**: Outputs code in a structured, styled Word document.
-- **Page Customization**: Allows you to specify the number of lines per page in the generated document for better readability and control over document length.
-- **Directory Ignoring**: : Provides options to specify directories to ignore during scanning, giving you flexibility in excluding certain folders from the final output.
-- **Ideal for Documentation**: Simplifies the process of generating reference materials.
-
-
-## Installation
-
-First, you can install the tool globally using npm:
+Run without a global install:
 
 ```sh
-# Install globally from npm
-npm install -g code-to-docx
+npx code-to-docx \
+  --source ./src \
+  --output ./artifacts/source-code.docx
 ```
 
-After installing globally with npm, you can run the tool directly from the command line:
+Or install the CLI:
 
 ```sh
-code-to-docx --source <source_directory> --type <file_types> --output <output_doc_path>  --ignored-dirs <ignore_dirs> --lines-per-page <lines_per_page>
+npm install --global code-to-docx
+code-to-docx --source ./src --output ./artifacts/source-code.docx
 ```
 
-You can also use the alias `c2d` for convenience:
+Use the short alias `c2d` anywhere `code-to-docx` is shown.
+
+## Agent and automation workflow
+
+Preview first:
 
 ```sh
-c2d -s <source_directory> -t <file_types> -o <output_doc_path> -i <ignore_dirs> -l <lines_per_page>
+code-to-docx \
+  --source ./src \
+  --type .js,.mjs,.ts,.tsx \
+  --ignored-files '*.test.mjs,*.spec.ts' \
+  --output ./artifacts/source-code.docx \
+  --dry-run \
+  --json
 ```
 
-Alternatively, you can clone the repository and install the required dependencies:
+Review the returned `files` and `skipped` arrays, then remove `--dry-run` to write the document. A successful JSON response has this shape:
+
+```json
+{
+  "ok": true,
+  "dryRun": false,
+  "source": "/absolute/path/src",
+  "output": "/absolute/path/artifacts/source-code.docx",
+  "outputBytes": 14269,
+  "files": [
+    {
+      "path": "index.mjs",
+      "lines": 120,
+      "bytes": 4280,
+      "sha256": "..."
+    }
+  ],
+  "totals": {
+    "files": 1,
+    "lines": 120,
+    "bytes": 4280
+  },
+  "skipped": [],
+  "warnings": []
+}
+```
+
+Errors use the same JSON envelope on standard error and return a nonzero exit code.
+
+## Agent Skill
+
+This repository includes an open-standard Agent Skill in [`skills/code-to-docx`](skills/code-to-docx). Once published, compatible agents can install it from this repository; the Skill teaches the agent to preview the source manifest, run the CLI, and verify the generated artifact.
+
+With a compatible `skills` installer:
 
 ```sh
-# Clone the repository
-git clone <repository-url>
-
-# Install dependencies (install the `commander`, `docx`, ...)
-yarn install
+npx skills add https://github.com/xllily/code-to-docx --skill code-to-docx
 ```
-Run the script using Yarn with the following command:
+
+You can also copy `skills/code-to-docx` into the skills directory supported by your agent host.
+
+## CLI reference
+
+| Option | Purpose | Default |
+| --- | --- | --- |
+| `-s, --source <path>` | Source directory to scan | Required |
+| `-t, --type <extensions>` | Comma-separated file extensions | Common source extensions |
+| `-o, --output <path>` | DOCX output path | `output.docx` |
+| `-l, --lines-per-page <number>` | Source lines per page | `50` |
+| `-i, --ignored-dirs <patterns>` | Additional directory names or glob patterns | None |
+| `--ignored-files <patterns>` | File names or glob patterns to exclude | None |
+| `--include-sensitive` | Include sensitive-looking filenames | Disabled |
+| `--max-files <number>` | Maximum matching files | `1000` |
+| `--max-file-size <bytes>` | Maximum bytes per file | `1000000` |
+| `--max-total-size <bytes>` | Maximum total source bytes | `25000000` |
+| `--dry-run` | Return the manifest without writing DOCX | Disabled |
+| `--json` | Emit machine-readable output | Disabled |
+| `--quiet` | Suppress human-readable success output | Disabled |
+
+Run `code-to-docx --help` for the current command reference.
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Document generated or dry run completed |
+| `2` | Invalid CLI arguments or limits |
+| `3` | Source scan failed or found no matching files |
+| `4` | DOCX generation or output writing failed |
+
+## Safety model
+
+The CLI skips common credential filenames such as `.env`, private keys, keystores, and credential files. It also refuses symbolic links, limits input size, and ignores common dependency, build, cache, and VCS directories.
+
+These controls reduce accidental disclosure; they are not a secret scanner. Always inspect `--dry-run --json` before sharing a document outside the source repository. `--include-sensitive` is an explicit override.
+
+## Development
 
 ```sh
-yarn start -s <source_directory> -t <file_types> -o <output_doc_path> -i <ignore_dirs> -l <lines_per_page>
+npm install
+npm test
+node src/index.mjs --help
 ```
 
-### Parameters
-
-| Parameter                      | Description                                                                                                                                                      | Default                                |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `-s, --source <path>`          | **(Required)** Source directory to scan. This should be the directory containing your source code. It can be an absolute or relative path.                       |                                        |
-| `-t, --type <file_types>`      | Comma-separated list of file types to scan, such as `.vue,.js`.                                                                                                   | `.vue,.js,.jsx,.ts,.tsx`               |
-| `-o, --output <path>`          | Path to output the `.docx` file containing the extracted source code. This can be an absolute or relative path.                                                   | `output.docx`                          |
-| `-l, --lines-per-page <number>`| Number of lines per page in the output `.docx` file.                                                                                                             | 50                                     |
-| `-i, --ignored-dirs <directories>` | Comma-separated list of directory names to ignore during scanning. If you specify additional directories, they will be merged with the default list (duplicates will be removed). | `"node_modules,dist,.git,target,bin,build,__pycache__,venv,out,pkg,cargo-cache,gems"` |
-
-
-**Notes**:
-
-- Paths for `.docx` files must be writable by the user running the script.
-- The `-t` parameter allows multiple file extensions to be specified as a comma-separated list.
-
-### Example
-
-```sh
-code-to-docx -s /path/to/vue-project/src -t .vue,.js -o output.docx
-```
-
-or using the alias:
-
-```sh
-c2d -s /path/to/vue-project/src -t .vue,.js -o output.docx
-```
-
-This command will:
-
-- Scan the `/path/to/vue-project/src` directory for `.vue` and `.js` files.
-- Generate `output.docx` containing all lines of code from the specified files.
-
-## Testing
-
-We use Jest to test the functionality of the code extractor, including validation of the generated `.docx` file.
-
-To run the tests, use the following command:
-
-```sh
-yarn test
-```
-
-This command will execute all test cases and provide output about the success or failure of each.
-
-## Dependencies
-- `docx` (third-party npm package): For creating `.docx` documents. Note that `docx` is not a Node.js native library, but an external package that needs to be installed separately.
-- `commander` (npm package): For handling command-line arguments.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance and [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## License
 
-This project is licensed under the MIT License.
+MIT © xllily. See [LICENSE](LICENSE).

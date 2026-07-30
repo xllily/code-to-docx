@@ -1,0 +1,77 @@
+name: Publish npm package
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  release_gate:
+    if: github.repository == 'xllily/code-to-docx'
+    runs-on: ubuntu-latest
+    outputs:
+      package_name: ${{ steps.package.outputs.name }}
+      package_version: ${{ steps.package.outputs.version }}
+      should_publish: ${{ steps.package.outputs.should_publish }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - id: package
+        name: Check whether this version is already published
+        shell: bash
+        run: |
+          package_name=$(node -p "require('./package.json').name")
+          package_version=$(node -p "require('./package.json').version")
+
+          echo "name=$package_name" >> "$GITHUB_OUTPUT"
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+
+          set +e
+          npm view "$package_name@$package_version" version --json > published-version.json 2> npm-view-error.log
+          view_status=$?
+          set -e
+
+          if [[ $view_status -eq 0 ]]; then
+            echo "Version $package_name@$package_version is already published; skipping."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          elif grep -q "E404" npm-view-error.log; then
+            echo "Version $package_name@$package_version is new and ready to publish."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            cat npm-view-error.log >&2
+            exit "$view_status"
+          fi
+
+  publish:
+    needs: release_gate
+    if: needs.release_gate.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:package
+      - name: Publish ${{ needs.release_gate.outputs.package_name }}@${{ needs.release_gate.outputs.package_version }}
+        run: npm publish
