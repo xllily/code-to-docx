@@ -11,11 +11,13 @@ export function normalizeRepositoryUrl(value) {
 }
 
 export function runCommand(command, args, options = {}) {
+  const useWindowsCommandShell = process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? process.cwd(),
     encoding: "utf8",
     env: options.env ?? process.env,
     maxBuffer: 4 * 1024 * 1024,
+    shell: useWindowsCommandShell,
   });
 
   if (result.error) throw result.error;
