@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code to DOCX"
+  short_description: "Create auditable DOCX source archives"
+  default_prompt: "Use $code-to-docx to create a verified Word archive from a source directory."

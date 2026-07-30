@@ -1,0 +1,35 @@
+[
+  {
+    "id": "external-review-archive",
+    "query": "Create a Word archive of the repository's JavaScript source for an external reviewer. Exclude tests and anything secret, and tell me exactly which files were included.",
+    "expected_behavior": [
+      "Runs a JSON dry run before generation",
+      "Reviews the included and skipped manifests",
+      "Generates with the same filters",
+      "Verifies the DOCX signature and byte size",
+      "Reports included relative paths and the filename-filtering limitation"
+    ],
+    "baseline_observation": "Without the skill, the agent bypassed the repository CLI and created temporary Markdown, build, and verification scripts."
+  },
+  {
+    "id": "file-boundary-handoff",
+    "query": "Package src as a DOCX handoff and preserve enough context to identify the source file for every code section.",
+    "expected_behavior": [
+      "Uses code-to-docx rather than an ad hoc document generator",
+      "Confirms file headings and SHA-256 metadata are present",
+      "Reports file and line totals"
+    ],
+    "baseline_observation": "Without the skill, the agent rebuilt a separate DOCX pipeline to obtain file boundaries, a manifest, and hashes."
+  },
+  {
+    "id": "false-success-exit-zero",
+    "query": "A prior code-to-docx command returned exit 0 but the requested output file is missing. Decide whether the archive is complete.",
+    "expected_behavior": [
+      "Does not declare success",
+      "Requires an existing nonempty DOCX",
+      "Runs the bundled verifier",
+      "Explains corrective action"
+    ],
+    "baseline_observation": "Without the skill, the agent correctly rejected completion by inspecting the missing artifact and the old CLI catch block."
+  }
+]
