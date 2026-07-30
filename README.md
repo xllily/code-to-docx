@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
 [![License](https://img.shields.io/npm/l/code-to-docx)](LICENSE)
 
-Create an auditable Word archive from a source tree. `code-to-docx` preserves file boundaries, comments, indentation, and blank lines; embeds per-file SHA-256 hashes; and exposes deterministic JSON output for coding agents and automation.
+Turn a source tree into an auditable Word archive from the command line or a coding agent. `code-to-docx` keeps file boundaries, comments, indentation, and blank lines intact, and records a SHA-256 hash for every file. The repository also includes an installable Agent Skill for Codex, Claude Code, Cursor, and other compatible agents.
 
 ## Why code-to-docx
 
