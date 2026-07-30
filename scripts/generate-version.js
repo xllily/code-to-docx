@@ -10,4 +10,4 @@ if (!fs.existsSync(versionDir)) {
 }
 
 fs.writeFileSync(versionFilePath, `export const version = '${packageJson.version}';`);
-console.log(`Generated version file at ${versionFilePath}`);
+console.error(`Generated version file at ${versionFilePath}`);

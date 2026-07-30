@@ -16,22 +16,28 @@ const packRoot = path.join(fixtureRoot, "pack");
 try {
   const environment = await createIsolatedNpmEnvironment(fixtureRoot);
   await fs.promises.mkdir(packRoot, { recursive: true });
-  runCommand(npmCommand, ["pack", "--json", "--pack-destination", packRoot], {
+  const packResult = runCommand(npmCommand, ["pack", "--json", "--pack-destination", packRoot], {
     cwd: repositoryRoot,
     env: environment,
   });
 
-  const tarballs = (await fs.promises.readdir(packRoot)).filter((file) => file.endsWith(".tgz"));
-  if (tarballs.length !== 1) {
-    throw new Error(`Expected one packed tarball but found ${tarballs.length}`);
+  let packed;
+  try {
+    packed = JSON.parse(packResult.stdout);
+  } catch (error) {
+    throw new Error(`npm pack --json returned invalid JSON: ${packResult.stdout}`, { cause: error });
   }
+  if (packed.length !== 1 || typeof packed[0]?.filename !== "string") {
+    throw new Error(`Expected one packed tarball result: ${packResult.stdout}`);
+  }
+  const tarball = packed[0].filename;
 
   const result = await acceptPackage({
-    packageSpec: path.join(packRoot, tarballs[0]),
+    packageSpec: path.join(packRoot, tarball),
     packageName: packageManifest.name,
     expectedVersion: packageManifest.version,
   });
-  process.stdout.write(`Package smoke passed: ${tarballs[0]} (${result.outputBytes} DOCX bytes)\n`);
+  process.stdout.write(`Package smoke passed: ${tarball} (${result.outputBytes} DOCX bytes)\n`);
 } finally {
   await fs.promises.rm(fixtureRoot, { recursive: true, force: true });
 }
