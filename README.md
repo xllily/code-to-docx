@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
 [![License](https://img.shields.io/npm/l/code-to-docx)](LICENSE)
 
-Create an auditable Word archive from a source tree. `code-to-docx` preserves file boundaries, comments, indentation, and blank lines; embeds per-file SHA-256 hashes; and exposes deterministic JSON output for coding agents and automation.
+Turn a source tree into an auditable Word archive from the command line or a coding agent. `code-to-docx` keeps file boundaries, comments, indentation, and blank lines intact, and records a SHA-256 hash for every file. The repository also includes an installable Agent Skill for Codex, Claude Code, Cursor, and other compatible agents.
 
 ## Why code-to-docx
 
@@ -17,7 +17,11 @@ Create an auditable Word archive from a source tree. `code-to-docx` preserves fi
 
 ## Quick start
 
-Run without a global install:
+Choose the interface that matches how you work.
+
+### Use the CLI
+
+Run once without a global install:
 
 ```sh
 npx code-to-docx \
@@ -33,6 +37,20 @@ code-to-docx --source ./src --output ./artifacts/source-code.docx
 ```
 
 Use the short alias `c2d` anywhere `code-to-docx` is shown.
+
+### Install the Agent Skill
+
+Install `code-to-docx` for the agents detected on your machine:
+
+```sh
+npx skills add xllily/code-to-docx --skill code-to-docx
+```
+
+Then start a new agent session and ask:
+
+> Export the source files in `./src` to `./artifacts/source-code.docx`.
+
+For agent-specific, global, local-clone, update, and verification commands, see [Install as an Agent Skill](#install-as-an-agent-skill).
 
 ## Agent and automation workflow
 
@@ -77,17 +95,108 @@ Review the returned `files` and `skipped` arrays, then remove `--dry-run` to wri
 
 Errors use the same JSON envelope on standard error and return a nonzero exit code.
 
-## Agent Skill
+## Install as an Agent Skill
 
-This repository includes an open-standard Agent Skill in [`skills/code-to-docx`](skills/code-to-docx). Once published, compatible agents can install it from this repository; the Skill teaches the agent to preview the source manifest, run the CLI, and verify the generated artifact.
+This repository includes an open Agent Skill in [`skills/code-to-docx`](skills/code-to-docx). The Skill teaches compatible coding agents to:
 
-With a compatible `skills` installer:
+1. preview and review the exact source manifest;
+2. generate the DOCX with the supported CLI contract;
+3. verify that the output is a nonempty DOCX containing the required package parts; and
+4. report included files, exclusions, totals, and security caveats.
+
+The Agent Skill and the CLI are complementary:
+
+| Component | What it provides | How to install |
+| --- | --- | --- |
+| Agent Skill | The workflow, guardrails, and output verification instructions used by your agent | `npx skills add ...` |
+| CLI | The `code-to-docx` / `c2d` executable that scans source and generates DOCX | `npm install --global code-to-docx` or run with `npx` |
+
+The Skill can run the CLI through `npx` when package execution and network access are allowed. For repeat use, CI, or offline work, install the CLI separately.
+
+### Install with the `skills` CLI
+
+Interactive install for detected agents:
 
 ```sh
-npx skills add https://github.com/xllily/code-to-docx --skill code-to-docx
+npx skills add xllily/code-to-docx --skill code-to-docx
 ```
 
-You can also copy `skills/code-to-docx` into the skills directory supported by your agent host.
+Install globally for Codex:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent codex \
+  --global \
+  --yes
+```
+
+Install globally for Claude Code:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent claude-code \
+  --global \
+  --yes
+```
+
+Install globally for both Codex and Claude Code:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent codex \
+  --agent claude-code \
+  --global \
+  --yes
+```
+
+Omit `--global` to install into the current project instead of your user-level agent configuration.
+
+### Discover before installing
+
+List the skills found in this repository:
+
+```sh
+npx skills add xllily/code-to-docx --list
+```
+
+You can also use the full GitHub URL:
+
+```sh
+npx skills add https://github.com/xllily/code-to-docx \
+  --skill code-to-docx
+```
+
+### Install from a local clone
+
+This is useful when testing a branch or local changes:
+
+```sh
+git clone https://github.com/xllily/code-to-docx.git
+cd code-to-docx
+npx skills add . --skill code-to-docx
+```
+
+### Verify or update the installation
+
+```sh
+# Show installed skills
+npx skills list
+
+# Show globally installed Codex skills
+npx skills list --global --agent codex
+
+# Update this skill when a new version is available
+npx skills update code-to-docx
+```
+
+After installation, start a new session in your agent and try a concrete request:
+
+> Use the code-to-docx skill to preview the TypeScript files in `./src`, exclude tests, export them to `./artifacts/source-code.docx`, and verify the result.
+
+If your agent does not use the `skills` CLI, copy the complete [`skills/code-to-docx`](skills/code-to-docx) directory into the skills directory supported by that agent. Keep `SKILL.md`, `scripts/`, and `references/` together; the verifier and CLI contract are part of the workflow.
 
 ## CLI reference
 

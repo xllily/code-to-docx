@@ -1,0 +1,114 @@
+# Git Branch and Release Model
+
+This repository uses a lightweight `main`/`develop` model. `main` records released history, `develop` integrates upcoming work, and every other branch is temporary.
+
+## Branch roles
+
+| Branch | Start from | Merge into | Lifetime |
+| --- | --- | --- | --- |
+| `main` | — | — | Permanent; released commits only |
+| `develop` | `main` | — | Permanent; next-release integration |
+| `feat/*`, `fix/*`, `docs/*`, `chore/*`, `codex/*` | `develop` | `develop` | Delete after merge |
+| `release/vX.Y.Z` | `develop` | `main`, then synchronize `main` into `develop` | Delete after release |
+| `hotfix/vX.Y.Z` | `main` | `main`, then synchronize `main` into `develop` | Delete after release |
+
+Do not open a direct `develop` to `main` release pull request. A temporary `release/*` branch keeps `develop` permanent when GitHub automatically deletes merged head branches.
+
+## Daily development
+
+1. Update `develop` and create a topic branch from it.
+2. Keep the change focused and add tests for changed behavior.
+3. Open a pull request into `develop` and require CI to pass. Use a merge commit so merged-branch cleanup remains provable from ancestry.
+4. Merge the pull request and delete its remote branch.
+5. Run `git fetch --prune` locally and delete the merged local branch with `git branch -d`.
+
+## Normal release
+
+1. Create `release/vX.Y.Z` from the current verified `develop`.
+2. Set `package.json` and `package-lock.json` to `X.Y.Z`, finalize release notes, and run:
+
+   ```sh
+   npm ci
+   npm test
+   npm run test:package
+   npm pack --dry-run
+   ```
+
+3. Open a pull request from `release/vX.Y.Z` to `main`. Require review and green CI, and use a merge commit to preserve release ancestry.
+4. Merge without rewriting an existing release tag. Record the resulting `main` commit as `R`.
+5. Confirm `R` is clean, on `main`, and still reports version `X.Y.Z`.
+6. Create and push an annotated tag:
+
+   ```sh
+   git tag -a vX.Y.Z R -m "Release vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+7. The tag-triggered workflow packs once, tests that exact tarball, creates a draft GitHub Release, and submits the tarball with `npm stage publish --tag next`. It must stop before public publication.
+8. From an authenticated maintainer workstation, list and inspect the staged package, download its tarball, and run the repository contract against that exact file:
+
+   ```sh
+   npm stage list code-to-docx
+   npm stage view <stage-id>
+   npm stage download <stage-id>
+   npm run test:artifact -- --tarball <downloaded-tarball> --expected-version X.Y.Z
+   ```
+
+9. After the staged tarball passes, approve it with interactive 2FA. Then wait for the exact public version and run the independent registry regression against release commit `R`:
+
+   ```sh
+   npm stage approve <stage-id>
+   npm run test:published -- --version X.Y.Z --expected-sha R
+   ```
+
+10. Record the previous `latest`, request explicit approval, then promote the accepted version and publish the existing draft GitHub Release. Verify both pointers afterward:
+
+    ```sh
+    npm view code-to-docx dist-tags --json
+    npm dist-tag add code-to-docx@X.Y.Z latest
+    npm view code-to-docx@latest version
+    gh release edit vX.Y.Z --draft=false --latest
+    gh release view vX.Y.Z --json tagName,isDraft,isLatest,url
+    ```
+
+11. Synchronize `main` back into `develop` with a merge commit, then delete `release/vX.Y.Z` locally and remotely.
+
+Never move or reuse a published tag. The `vX.Y.Z` tag, npm `X.Y.Z`, package manifests, GitHub Release, workflow run, and commit `R` must describe the same release.
+
+## Hotfix
+
+1. Create `hotfix/vX.Y.Z` from the latest known-good `main` tag or commit.
+2. Apply the smallest fix, bump the patch version, and run the full release checks.
+3. Merge into `main`, create the matching annotated tag, and let the release workflow finish.
+4. Synchronize `main` into `develop` so the fix cannot be lost.
+
+## Cleanup safety
+
+Enable GitHub **Automatically delete head branches**. Protect `main` and `develop` from deletion and force pushes, and require pull requests plus CI for both.
+
+Before manual deletion, prove that the pull request was merged and that the branch has no unique work. Show the exact branch list, then use safe deletion:
+
+```sh
+git fetch --prune
+git branch -d <merged-local-branch>
+git push origin --delete <merged-remote-branch>
+```
+
+Squash-merged topic branches may be rejected by `git branch -d` even after their pull request is merged. Use `git branch -D` only for one exact local branch after rechecking the merged pull request, destination content, and absence of unique work.
+
+Do not bulk-delete with unresolved globs, use `git branch -D` as routine cleanup, delete `main` or `develop`, or delete a branch with an open pull request or unmerged work.
+
+## Repository settings
+
+- Default branch: `main`.
+- Require pull requests and CI on `main` and `develop`.
+- Block force pushes and branch deletion on permanent branches.
+- Enable automatic deletion of merged head branches.
+- Protect `v*` tags from update or deletion when repository rulesets are available.
+- Protect the `npm-stage` environment with required reviewers, prevent self-review when practical, and restrict deployment to protected `v*` tags.
+- Configure npm Trusted Publishing for `publish.yml`, environment `npm-stage`, and the `npm stage publish` action only. Disallow token-based publishing.
+- Use merge commits for topic pull requests into `develop`, release/hotfix pull requests into `main`, and synchronization from `main` back into `develop`.
+
+## Recovery
+
+Before staged approval, reject a failing candidate and leave the GitHub Release in draft. After approval, never move `latest` until `test:published` passes. If an already-promoted release is defective, restore the previous known-good `latest` dist-tag, deprecate the bad npm version, mark the GitHub Release clearly, and publish a corrected patch. Do not unpublish routinely, force-move tags, or rewrite shared history.
