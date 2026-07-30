@@ -1,11 +1,13 @@
-# code-to-docx
+# code-to-docx — export source code to Word
 
 [![CI](https://github.com/xllily/code-to-docx/actions/workflows/ci.yml/badge.svg)](https://github.com/xllily/code-to-docx/actions/workflows/ci.yml)
 [![Downloads](https://img.shields.io/npm/dw/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
 [![npm version](https://img.shields.io/npm/v/code-to-docx)](https://www.npmjs.com/package/code-to-docx)
 [![License](https://img.shields.io/npm/l/code-to-docx)](LICENSE)
 
-Turn a source tree into an auditable Word archive from the command line or a coding agent. `code-to-docx` keeps file boundaries, comments, indentation, and blank lines intact, and records a SHA-256 hash for every file. The repository also includes an installable Agent Skill for Codex, Claude Code, Cursor, and other compatible agents.
+`code-to-docx` is a command-line tool and Agent Skill that converts a source code directory into a structured Microsoft Word (`.docx`) document. It preserves file boundaries, comments, indentation, and blank lines so you can export a codebase to Word without copying files by hand.
+
+By default, the generated source code archive records line counts, byte counts, and a SHA-256 hash for every file. Use `--pure` when the Word document should contain only file names and source code.
 
 ## Why code-to-docx
 
@@ -14,6 +16,16 @@ Turn a source tree into an auditable Word archive from the command line or a cod
 - Preview the exact manifest with `--dry-run` before writing or sharing a document.
 - Exclude common secret filenames and generated directories by default.
 - Use stable exit codes and `--json` in agents, CI, and shell automation.
+
+## Common use cases
+
+Use `code-to-docx` when you need to:
+
+- convert source code to a Word document for delivery or submission;
+- export an entire codebase to DOCX for offline review;
+- create an auditable source code archive with per-file SHA-256 hashes;
+- preserve source formatting and file boundaries in one document; or
+- let Codex, Claude Code, Cursor, or another coding agent generate and verify a DOCX archive.
 
 ## Quick start
 
@@ -214,6 +226,7 @@ If your agent does not use the `skills` CLI, copy the complete [`skills/code-to-
 | `--max-total-size <bytes>` | Maximum total source bytes | `25000000` |
 | `--dry-run` | Return the manifest without writing DOCX | Disabled |
 | `--json` | Emit machine-readable output | Disabled |
+| `-p, --pure` | Omit line, byte, and SHA-256 metadata from the DOCX | Disabled |
 | `--quiet` | Suppress human-readable success output | Disabled |
 
 Run `code-to-docx --help` for the current command reference.
@@ -232,6 +245,34 @@ Run `code-to-docx --help` for the current command reference.
 The CLI skips common credential filenames such as `.env`, private keys, keystores, and credential files. It also refuses symbolic links, limits input size, and ignores common dependency, build, cache, and VCS directories.
 
 These controls reduce accidental disclosure; they are not a secret scanner. Always inspect `--dry-run --json` before sharing a document outside the source repository. `--include-sensitive` is an explicit override.
+
+## Frequently asked questions
+
+### How do I convert source code to a Word document?
+
+Run `npx code-to-docx --source ./src --output ./source-code.docx`. The CLI scans matching source files and writes them to a structured DOCX document with a separate section for each file.
+
+### Can I export an entire codebase to DOCX?
+
+Yes. Point `--source` at the project directory and use `--type`, `--ignored-dirs`, and `--ignored-files` to control the archive. Preview the exact file list with `--dry-run --json` before generating it.
+
+### Does code-to-docx preserve source code formatting?
+
+Yes. It preserves comments, indentation, blank lines, and file boundaries. The generated document uses a monospace font and labels every included file.
+
+### Can coding agents use code-to-docx?
+
+Yes. The repository includes an installable Agent Skill, stable exit codes, JSON output, manifest preview, and output verification instructions for agent and CI workflows.
+
+### Does code-to-docx upload my source code?
+
+No. The CLI reads local files and writes the DOCX locally. It does not upload source code to a hosted service. Review the [safety model](#safety-model) before sharing generated documents.
+
+## Project links
+
+- [Install code-to-docx from npm](https://www.npmjs.com/package/code-to-docx)
+- [View the source and releases on GitHub](https://github.com/xllily/code-to-docx)
+- [Report a bug or request a feature](https://github.com/xllily/code-to-docx/issues)
 
 ## Development
 
