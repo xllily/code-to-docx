@@ -70,6 +70,7 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - run: npm ci
+      - run: npm run test:skill
       - id: package
         name: Pack the release candidate exactly once
         shell: bash

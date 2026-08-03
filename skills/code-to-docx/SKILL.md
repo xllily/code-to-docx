@@ -14,7 +14,7 @@ Use the `code-to-docx` CLI as the archive engine. Preview the exact manifest bef
 2. Select the CLI in this order:
    - In the `code-to-docx` repository, run `node src/index.mjs`.
    - Otherwise, use an installed `code-to-docx` command.
-   - If unavailable, run `npx --yes code-to-docx@1.3.0` only when network package execution is allowed.
+   - If unavailable, run `npx --yes code-to-docx@1.3.2` only when network package execution is allowed.
 
    If none is available, report the dependency blocker. Do not substitute an unreviewed generator without the user's approval.
 
