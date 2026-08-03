@@ -16,7 +16,9 @@
     "test:artifact": "node tests/package-artifact-regression.mjs",
     "test:package": "node tests/package-smoke.mjs",
     "test:published": "node tests/published-package-regression.mjs",
-    "test:skill": "node tests/skill-install-regression.mjs"
+    "test:skill": "node tests/skill-install-regression.mjs",
+    "test:agent": "node tests/agent-runtime-smoke.mjs",
+    "test:agent:local": "npm run test:agent -- codex && npm run test:agent -- claude-code"
   },
   "author": "xllily",
   "license": "MIT",

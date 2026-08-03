@@ -18,9 +18,17 @@ export function runCommand(command, args, options = {}) {
     env: options.env ?? process.env,
     maxBuffer: 4 * 1024 * 1024,
     shell: useWindowsCommandShell,
+    timeout: options.timeout,
   });
 
-  if (result.error) throw result.error;
+  if (result.error) {
+    throw new Error([
+      `Command could not complete: ${command} ${args.join(" ")}`,
+      `${result.error.code ?? result.error.name}: ${result.error.message}`,
+      result.stdout,
+      result.stderr,
+    ].filter(Boolean).join("\n"), { cause: result.error });
+  }
   if (result.status !== 0) {
     throw new Error([
       `Command failed (${result.status}): ${command} ${args.join(" ")}`,

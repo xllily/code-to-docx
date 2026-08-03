@@ -111,6 +111,14 @@ Do not bulk-delete with unresolved globs, use `git branch -D` as routine cleanup
 - Configure npm Trusted Publishing for `publish.yml`, environment `npm-stage`, and the `npm stage publish` action only. Disallow token-based publishing.
 - Use merge commits for topic pull requests into `develop`, release/hotfix pull requests into `main`, and synchronization from `main` back into `develop`.
 
+## Scheduled Agent Skill acceptance
+
+The weekly `Scheduled Agent Skill acceptance` workflow always tests installation with the latest `skills` CLI, installation from the public `xllily/code-to-docx` source, package behavior, and the production dependency audit. GitHub registers the schedule only after the workflow exists on `main`; its jobs deliberately check out `develop` so upcoming changes are exercised before release. These scheduled checks require no Agent API keys and do not claim runtime coverage.
+
+Real Agent smoke is currently a local maintainer check for Codex and Claude Code. Run `npm run test:agent:local` after both CLIs are installed and logged in, or run one target with `npm run test:agent -- codex` or `npm run test:agent -- claude-code`. The harness installs the project Skill into an empty temporary workspace, starts the real Agent in its official non-interactive mode, and asks it for an exact versioned fallback command that appears only inside the installed `SKILL.md`. A failed Agent process, undiscovered Skill, or incorrect response fails the command. Existing local login state is used by default; `AGENT_RUNTIME_API_KEY` is available for an explicit one-off credential without placing it in command arguments.
+
+Other products remain installation-contract or manual acceptance targets. Do not report them as automated runtime coverage until an official headless runtime is added to the local smoke harness and exercised successfully.
+
 ## Recovery
 
 Before staged approval, reject a failing candidate and leave the GitHub Release in draft. After approval, never move `latest` until `test:published` passes. If an already-promoted release is defective, restore the previous known-good `latest` dist-tag, deprecate the bad npm version, mark the GitHub Release clearly, and publish a corrected patch. Do not unpublish routinely, force-move tags, or rewrite shared history.
