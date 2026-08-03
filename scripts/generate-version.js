@@ -9,5 +9,5 @@ if (!fs.existsSync(versionDir)) {
     fs.mkdirSync(versionDir, { recursive: true });
 }
 
-fs.writeFileSync(versionFilePath, `export const version = '${packageJson.version}';`);
+fs.writeFileSync(versionFilePath, `export const version = '${packageJson.version}';\n`);
 console.error(`Generated version file at ${versionFilePath}`);

@@ -42,3 +42,29 @@ test("writes file headings and complete source text to the DOCX", async () => {
     await fs.promises.rm(fixtureRoot, { recursive: true, force: true });
   }
 });
+
+test("omits per-file audit metadata in pure mode", async () => {
+  const fixtureRoot = await fs.promises.mkdtemp(path.join(os.tmpdir(), "code-to-docx-generate-"));
+  const outputFilePath = path.join(fixtureRoot, "output.docx");
+  const sourceFiles = [{
+    path: "src/example.js",
+    content: "const example = true;\n",
+    lineCount: 1,
+    byteCount: 22,
+    sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  }];
+
+  try {
+    await generateWordDoc(outputFilePath, sourceFiles, { pure: true });
+    const buffer = await fs.promises.readFile(outputFilePath);
+    const result = await mammoth.extractRawText({ buffer });
+
+    expect(result.value).toContain("src/example.js");
+    expect(result.value).toContain("const example = true;");
+    expect(result.value).not.toContain("1 lines · 22 bytes");
+    expect(result.value).not.toContain("SHA-256:");
+    expect(result.value).not.toContain(sourceFiles[0].sha256);
+  } finally {
+    await fs.promises.rm(fixtureRoot, { recursive: true, force: true });
+  }
+});

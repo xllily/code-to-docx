@@ -30,7 +30,9 @@ Do not open a direct `develop` to `main` release pull request. A temporary `rele
    ```sh
    npm ci
    npm test
+   npm run test:skill
    npm run test:package
+   npm audit --omit=dev
    npm pack --dry-run
    ```
 
