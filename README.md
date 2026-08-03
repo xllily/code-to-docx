@@ -133,38 +133,101 @@ Interactive install for detected agents:
 npx skills add xllily/code-to-docx --skill code-to-docx
 ```
 
-Install globally for Codex:
+Project-scoped installation is recommended because it can be committed and shared with the repository. Choose the agent you use:
+
+#### Codex
+
+Codex officially discovers repository skills from `.agents/skills/`:
 
 ```sh
 npx skills add xllily/code-to-docx \
   --skill code-to-docx \
   --agent codex \
-  --global \
   --yes
 ```
 
-Install globally for Claude Code:
+#### Claude Code
+
+Claude Code officially discovers project skills from `.claude/skills/`:
 
 ```sh
 npx skills add xllily/code-to-docx \
   --skill code-to-docx \
   --agent claude-code \
-  --global \
   --yes
 ```
 
-Install globally for both Codex and Claude Code:
+#### Cursor
+
+Cursor officially discovers project skills from `.agents/skills/` and `.cursor/skills/`:
 
 ```sh
 npx skills add xllily/code-to-docx \
   --skill code-to-docx \
-  --agent codex \
-  --agent claude-code \
-  --global \
+  --agent cursor \
   --yes
 ```
 
-Omit `--global` to install into the current project instead of your user-level agent configuration.
+#### Kiro
+
+Kiro officially discovers workspace skills from `.kiro/skills/`:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent kiro-cli \
+  --yes
+```
+
+#### Gemini CLI
+
+Gemini CLI officially discovers `.gemini/skills/` and accepts `.agents/skills/` as a compatibility alias:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent gemini-cli \
+  --yes
+```
+
+#### Google Antigravity
+
+Antigravity officially discovers workspace skills from `.agents/skills/`:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent antigravity \
+  --yes
+```
+
+#### Qoder CLI
+
+Qoder CLI officially discovers project skills from `.qoder/skills/`:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent qoder \
+  --yes
+```
+
+The supported product is **Qoder**. Do not treat similarly named QCoder products as compatible unless their own documentation explicitly supports the Agent Skills standard.
+
+#### TRAE
+
+TRAE IDE 3.5.44 and later officially loads project skills from `.agents/skills/`. Use the `skills` CLI's `universal` target to install there:
+
+```sh
+npx skills add xllily/code-to-docx \
+  --skill code-to-docx \
+  --agent universal \
+  --yes
+```
+
+Restart the agent session after installation if the new Skill is not discovered automatically.
+
+Official location references: [Codex](https://developers.openai.com/codex/skills), [Claude Code](https://code.claude.com/docs/en/skills), [Cursor](https://cursor.com/docs/skills), [Kiro](https://kiro.dev/docs/skills/), [Gemini CLI](https://geminicli.com/docs/cli/creating-skills/), [Antigravity](https://antigravity.google/docs/skills?app=antigravity-ide), [Qoder CLI](https://docs.qoder.com/cli/Skills), and [TRAE changelog](https://www.trae.ai/changelog).
 
 ### Discover before installing
 

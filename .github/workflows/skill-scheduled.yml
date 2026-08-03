@@ -1,0 +1,103 @@
+name: Scheduled Agent Skill acceptance
+
+on:
+  # GitHub registers schedules only from the default branch. Keep this workflow
+  # on main; the jobs below explicitly test develop.
+  schedule:
+    # Every Monday at 10:23 Asia/Shanghai (02:23 UTC).
+    - cron: "23 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-agent-skill-acceptance
+  cancel-in-progress: true
+
+jobs:
+  skill-installation:
+    name: Skill installation (${{ matrix.agent }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agent: codex
+            expected_root: .agents/skills
+          - agent: claude-code
+            expected_root: .claude/skills
+          - agent: cursor
+            expected_root: .agents/skills
+          - agent: kiro-cli
+            expected_root: .kiro/skills
+          - agent: gemini-cli
+            expected_root: .agents/skills
+          - agent: antigravity
+            expected_root: .agents/skills
+          - agent: qoder
+            expected_root: .qoder/skills
+          - agent: universal
+            expected_root: .agents/skills
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - name: Test against the latest skills CLI
+        env:
+          SKILLS_CLI_VERSION: latest
+          SKILLS_AGENT: ${{ matrix.agent }}
+          SKILLS_EXPECTED_ROOT: ${{ matrix.expected_root }}
+        run: npm run test:skill
+
+  public-skill-installation:
+    name: Public GitHub Skill installation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - name: Install from the public source shown in README
+        env:
+          SKILLS_CLI_VERSION: latest
+          SKILLS_SOURCE: xllily/code-to-docx
+          SKILLS_AGENT: universal
+          SKILLS_EXPECTED_ROOT: .agents/skills
+          SKILLS_VERIFY_LOCAL_VERSION: "false"
+        run: npm run test:skill
+
+  package-acceptance:
+    name: Package and dependency acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: develop
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: npm ci
+      - name: Verify package installation and DOCX output
+        run: npm run test:package
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
