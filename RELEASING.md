@@ -73,7 +73,7 @@ Do not open a direct `develop` to `main` release pull request. A temporary `rele
     gh release view vX.Y.Z --json tagName,isDraft,isLatest,url
     ```
 
-11. Synchronize `main` back into `develop` with a merge commit, then delete `release/vX.Y.Z` locally and remotely.
+11. Review and merge the draft `main` to `develop` synchronization pull request opened automatically by `sync-main-to-develop.yml`. Do not squash it: `develop` must retain the released `main` commit in its ancestry. If automation was unavailable, create the same pull request manually. Then delete `release/vX.Y.Z` locally and remotely.
 
 Never move or reuse a published tag. The `vX.Y.Z` tag, npm `X.Y.Z`, package manifests, GitHub Release, workflow run, and commit `R` must describe the same release.
 
@@ -107,9 +107,12 @@ Do not bulk-delete with unresolved globs, use `git branch -D` as routine cleanup
 - Block force pushes and branch deletion on permanent branches.
 - Enable automatic deletion of merged head branches.
 - Protect `v*` tags from update or deletion when repository rulesets are available.
+- Enable **Allow GitHub Actions to create and approve pull requests** under Actions workflow permissions. The synchronization workflow requests only `contents: read` and `pull-requests: write`; it never approves or merges its draft PR.
 - Protect the `npm-stage` environment with required reviewers, prevent self-review when practical, and restrict deployment to protected `v*` tags.
 - Configure npm Trusted Publishing for `publish.yml`, environment `npm-stage`, and the `npm stage publish` action only. Disallow token-based publishing.
 - Use merge commits for topic pull requests into `develop`, release/hotfix pull requests into `main`, and synchronization from `main` back into `develop`.
+
+`sync-main-to-develop.yml` runs after a merged `release/*` or `hotfix/*` pull request into `main`. It compares `develop...main`, skips when synchronization is unnecessary, reuses an existing open sync PR, and otherwise opens a draft `main` to `develop` PR. It can also be run manually from the Actions page for recovery. A pull request opened with `GITHUB_TOKEN` may require a maintainer to select **Approve workflows to run** before the normal PR checks start. Disable the workflow or close its draft PR to stop a pending synchronization; no branch is changed until a maintainer merges the PR.
 
 ## Scheduled Agent Skill acceptance
 

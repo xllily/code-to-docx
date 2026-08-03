@@ -1,0 +1,81 @@
+name: Propose main to develop synchronization
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: propose-main-to-develop-sync
+  cancel-in-progress: false
+
+jobs:
+  propose-sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+      (startsWith(github.event.pull_request.head.ref, 'release/') ||
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Open a draft synchronization pull request when needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          comparison=$(gh api "repos/${GITHUB_REPOSITORY}/compare/develop...main")
+          ahead_by=$(jq -r '.ahead_by' <<< "$comparison")
+
+          if [[ "$ahead_by" == "0" ]]; then
+            echo "main is already contained in develop; no synchronization PR is needed."
+            exit 0
+          fi
+
+          existing_pr=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --base develop \
+            --head main \
+            --json number,url \
+            --jq '.[0].url // empty')
+
+          if [[ -n "$existing_pr" ]]; then
+            echo "An open main to develop synchronization PR already exists: $existing_pr"
+            exit 0
+          fi
+
+          body_file="$RUNNER_TEMP/main-to-develop-sync.md"
+          cat > "$body_file" <<'EOF'
+          ## What changed
+
+          Synchronize the latest released `main` history back into `develop`.
+
+          ## Why
+
+          `main` is reserved for released commits. After a release or hotfix is merged, its commit ancestry must be brought back into `develop` so upcoming work does not diverge from released history.
+
+          ## Merge policy
+
+          This pull request is intentionally created as a draft. Review the diff and require the normal `develop` CI before merging. Do not squash this synchronization PR because `develop` must retain `main` in its ancestry.
+          EOF
+
+          pr_url=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base develop \
+            --head main \
+            --draft \
+            --title "chore(release): sync main into develop" \
+            --body-file "$body_file")
+
+          echo "Created synchronization PR: $pr_url"
+          echo "### Main to develop synchronization" >> "$GITHUB_STEP_SUMMARY"
+          echo "Created draft PR: $pr_url" >> "$GITHUB_STEP_SUMMARY"
