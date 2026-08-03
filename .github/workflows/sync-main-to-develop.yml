@@ -1,4 +1,4 @@
-name: Propose main to develop synchronization
+name: Prepare main to develop synchronization
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 concurrency:
@@ -25,17 +25,24 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Open a draft synchronization pull request when needed
+      - name: Check out the latest develop branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Create a synchronization branch and draft pull request when needed
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
 
-          comparison=$(gh api "repos/${GITHUB_REPOSITORY}/compare/develop...main")
-          ahead_by=$(jq -r '.ahead_by' <<< "$comparison")
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/develop:refs/remotes/origin/develop
 
-          if [[ "$ahead_by" == "0" ]]; then
+          if git merge-base --is-ancestor origin/main origin/develop; then
             echo "main is already contained in develop; no synchronization PR is needed."
             exit 0
           fi
@@ -44,20 +51,34 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --state open \
             --base develop \
-            --head main \
-            --json number,url \
-            --jq '.[0].url // empty')
+            --json headRefName,url \
+            --jq '[.[] | select(.headRefName | startswith("sync/main-to-develop-"))][0].url // empty')
 
           if [[ -n "$existing_pr" ]]; then
             echo "An open main to develop synchronization PR already exists: $existing_pr"
             exit 0
           fi
 
+          sync_branch="sync/main-to-develop-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --create "$sync_branch" origin/develop
+
+          if ! git merge --no-ff origin/main -m "chore(release): sync main into develop"; then
+            git merge --abort
+            echo "main cannot be synchronized into develop without resolving conflicts." >&2
+            exit 1
+          fi
+
+          git merge-base --is-ancestor origin/develop HEAD
+          git merge-base --is-ancestor origin/main HEAD
+          git push origin "HEAD:refs/heads/$sync_branch"
+
           body_file="$RUNNER_TEMP/main-to-develop-sync.md"
           cat > "$body_file" <<'EOF'
           ## What changed
 
-          Synchronize the latest released `main` history back into `develop`.
+          Synchronize the latest released `main` history back into `develop`. This disposable branch started from the latest `develop` and contains a merge commit whose second parent is `main`; `main` itself was not changed.
 
           ## Why
 
@@ -65,13 +86,15 @@ jobs:
 
           ## Merge policy
 
-          This pull request is intentionally created as a draft. Review the diff and require the normal `develop` CI before merging. Do not squash this synchronization PR because `develop` must retain `main` in its ancestry.
+          This pull request is intentionally created as a draft. Approve its workflow runs, review the diff, and require the normal `develop` CI before merging. Use **Create a merge commit**. Do not squash or rebase because `develop` must retain `main` in its ancestry.
+
+          If `develop` advances and this branch becomes out of date, close this pull request and rerun the synchronization workflow. Do not update `main` and do not rebase this synchronization branch.
           EOF
 
           pr_url=$(gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base develop \
-            --head main \
+            --head "$sync_branch" \
             --draft \
             --title "chore(release): sync main into develop" \
             --body-file "$body_file")
