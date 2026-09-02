@@ -96,6 +96,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - run: npm run test:coverage
+      - run: npm run test:skill
       - id: package
         name: Pack and accept the exact release candidate
         env:

@@ -1,0 +1,104 @@
+name: Prepare main to develop synchronization
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: propose-main-to-develop-sync
+  cancel-in-progress: false
+
+jobs:
+  propose-sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+      (startsWith(github.event.pull_request.head.ref, 'release/') ||
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out the latest develop branch
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Create a synchronization branch and draft pull request when needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/develop:refs/remotes/origin/develop
+
+          if git merge-base --is-ancestor origin/main origin/develop; then
+            echo "main is already contained in develop; no synchronization PR is needed."
+            exit 0
+          fi
+
+          existing_pr=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --base develop \
+            --json headRefName,url \
+            --jq '[.[] | select(.headRefName | startswith("sync/main-to-develop-"))][0].url // empty')
+
+          if [[ -n "$existing_pr" ]]; then
+            echo "An open main to develop synchronization PR already exists: $existing_pr"
+            exit 0
+          fi
+
+          sync_branch="sync/main-to-develop-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --create "$sync_branch" origin/develop
+
+          if ! git merge --no-ff origin/main -m "chore(release): sync main into develop"; then
+            git merge --abort
+            echo "main cannot be synchronized into develop without resolving conflicts." >&2
+            exit 1
+          fi
+
+          git merge-base --is-ancestor origin/develop HEAD
+          git merge-base --is-ancestor origin/main HEAD
+          git push origin "HEAD:refs/heads/$sync_branch"
+
+          body_file="$RUNNER_TEMP/main-to-develop-sync.md"
+          cat > "$body_file" <<'EOF'
+          ## What changed
+
+          Synchronize the latest released `main` history back into `develop`. This disposable branch started from the latest `develop` and contains a merge commit whose second parent is `main`; `main` itself was not changed.
+
+          ## Why
+
+          `main` is reserved for released commits. After a release or hotfix is merged, its commit ancestry must be brought back into `develop` so upcoming work does not diverge from released history.
+
+          ## Merge policy
+
+          This pull request is intentionally created as a draft. Approve its workflow runs, review the diff, and require the normal `develop` CI before merging. Use **Create a merge commit**. Do not squash or rebase because `develop` must retain `main` in its ancestry.
+
+          If `develop` advances and this branch becomes out of date, close this pull request and rerun the synchronization workflow. Do not update `main` and do not rebase this synchronization branch.
+          EOF
+
+          pr_url=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base develop \
+            --head "$sync_branch" \
+            --draft \
+            --title "chore(release): sync main into develop" \
+            --body-file "$body_file")
+
+          echo "Created synchronization PR: $pr_url"
+          echo "### Main to develop synchronization" >> "$GITHUB_STEP_SUMMARY"
+          echo "Created draft PR: $pr_url" >> "$GITHUB_STEP_SUMMARY"

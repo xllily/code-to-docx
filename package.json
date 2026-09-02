@@ -1,7 +1,7 @@
 {
   "name": "code-to-docx",
   "private": false,
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Export source code and entire codebases to structured Word DOCX archives with a CLI and Agent Skill",
   "main": "src/index.mjs",
   "bin": {
@@ -15,7 +15,10 @@
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
     "test:artifact": "node tests/package-artifact-regression.mjs",
     "test:package": "node tests/package-smoke.mjs",
-    "test:published": "node tests/published-package-regression.mjs"
+    "test:published": "node tests/published-package-regression.mjs",
+    "test:skill": "node tests/skill-install-regression.mjs",
+    "test:agent": "node tests/agent-runtime-smoke.mjs",
+    "test:agent:local": "npm run test:agent -- codex && npm run test:agent -- claude-code"
   },
   "author": "xllily",
   "license": "MIT",
@@ -48,7 +51,7 @@
   ],
   "dependencies": {
     "commander": "^12.1.0",
-    "docx": "^9.0.0"
+    "docx": "^9.7.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.25.7",

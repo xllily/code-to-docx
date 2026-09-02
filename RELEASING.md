@@ -9,8 +9,9 @@ This repository uses a lightweight `main`/`develop` model. `main` records releas
 | `main` | — | — | Permanent; released commits only |
 | `develop` | `main` | — | Permanent; next-release integration |
 | `feat/*`, `fix/*`, `docs/*`, `chore/*`, `codex/*` | `develop` | `develop` | Delete after merge |
-| `release/vX.Y.Z` | `develop` | `main`, then synchronize `main` into `develop` | Delete after release |
-| `hotfix/vX.Y.Z` | `main` | `main`, then synchronize `main` into `develop` | Delete after release |
+| `release/vX.Y.Z` | `develop` | `main`, then synchronize `main` through a temporary `sync/*` branch | Delete after release |
+| `hotfix/vX.Y.Z` | `main` | `main`, then synchronize `main` through a temporary `sync/*` branch | Delete after release |
+| `sync/main-to-develop-*` | latest `develop` | `develop` after merging `main` into the temporary branch | Delete after synchronization |
 
 Do not open a direct `develop` to `main` release pull request. A temporary `release/*` branch keeps `develop` permanent when GitHub automatically deletes merged head branches.
 
@@ -30,7 +31,9 @@ Do not open a direct `develop` to `main` release pull request. A temporary `rele
    ```sh
    npm ci
    npm test
+   npm run test:skill
    npm run test:package
+   npm audit --omit=dev
    npm pack --dry-run
    ```
 
@@ -71,7 +74,7 @@ Do not open a direct `develop` to `main` release pull request. A temporary `rele
     gh release view vX.Y.Z --json tagName,isDraft,isLatest,url
     ```
 
-11. Synchronize `main` back into `develop` with a merge commit, then delete `release/vX.Y.Z` locally and remotely.
+11. Review the draft synchronization pull request opened automatically by `sync-main-to-develop.yml`. The workflow creates a disposable branch from the latest `develop`, merges `main` into that branch, and targets the branch back to `develop`; it never modifies `main`. Approve the queued workflow runs and use **Create a merge commit**. Do not squash or rebase because `develop` must retain the released `main` commit in its ancestry. If `develop` advances before the merge, close the stale synchronization pull request and rerun the workflow instead of rebasing it. Then delete `release/vX.Y.Z` locally and remotely.
 
 Never move or reuse a published tag. The `vX.Y.Z` tag, npm `X.Y.Z`, package manifests, GitHub Release, workflow run, and commit `R` must describe the same release.
 
@@ -105,9 +108,20 @@ Do not bulk-delete with unresolved globs, use `git branch -D` as routine cleanup
 - Block force pushes and branch deletion on permanent branches.
 - Enable automatic deletion of merged head branches.
 - Protect `v*` tags from update or deletion when repository rulesets are available.
+- Enable **Allow GitHub Actions to create and approve pull requests** under Actions workflow permissions. The synchronization workflow requests `contents: write` to push one temporary `sync/main-to-develop-*` branch and `pull-requests: write` to open its draft PR; it never writes to `main` or `develop`, approves checks, or merges the PR.
 - Protect the `npm-stage` environment with required reviewers, prevent self-review when practical, and restrict deployment to protected `v*` tags.
 - Configure npm Trusted Publishing for `publish.yml`, environment `npm-stage`, and the `npm stage publish` action only. Disallow token-based publishing.
 - Use merge commits for topic pull requests into `develop`, release/hotfix pull requests into `main`, and synchronization from `main` back into `develop`.
+
+`sync-main-to-develop.yml` runs after a merged `release/*` or `hotfix/*` pull request into `main`. It skips when `main` is already an ancestor of `develop`, reuses an existing open sync PR, and otherwise starts a unique temporary branch from the latest `develop`, creates a merge commit containing `main`, pushes only that branch, and opens a draft PR back to `develop`. It can also be run manually from the Actions page for recovery. A pull request opened with `GITHUB_TOKEN` requires a maintainer to select **Approve workflows to run** before the normal PR checks start. Close a pending synchronization PR to stop it; rerun the workflow to replace a stale or conflicted attempt. Neither permanent branch changes until a maintainer merges the PR.
+
+## Scheduled Agent Skill acceptance
+
+The weekly `Scheduled Agent Skill acceptance` workflow always tests installation with the latest `skills` CLI, installation from the public `xllily/code-to-docx` source, package behavior, and the production dependency audit. GitHub registers the schedule only after the workflow exists on `main`; its jobs deliberately check out `develop` so upcoming changes are exercised before release. These scheduled checks require no Agent API keys and do not claim runtime coverage.
+
+Real Agent smoke is currently a local maintainer check for Codex and Claude Code. Run `npm run test:agent:local` after both CLIs are installed and logged in, or run one target with `npm run test:agent -- codex` or `npm run test:agent -- claude-code`. The harness installs the project Skill into an empty temporary workspace, starts the real Agent in its official non-interactive mode, and asks it for an exact versioned fallback command that appears only inside the installed `SKILL.md`. A failed Agent process, undiscovered Skill, or incorrect response fails the command. Existing local login state is used by default; `AGENT_RUNTIME_API_KEY` is available for an explicit one-off credential without placing it in command arguments.
+
+Other products remain installation-contract or manual acceptance targets. Do not report them as automated runtime coverage until an official headless runtime is added to the local smoke harness and exercised successfully.
 
 ## Recovery
 

@@ -30,8 +30,8 @@ jobs:
               exit 1
             }
           elif [[ "$BASE_BRANCH" == "develop" ]]; then
-            [[ "$HEAD_BRANCH" == "main" || "$HEAD_BRANCH" =~ ^(feat|fix|docs|chore|codex)/.+$ ]] || {
-              echo "Pull requests into develop must come from main or an approved topic branch." >&2
+            [[ "$HEAD_BRANCH" =~ ^sync/main-to-develop-[0-9]+-[0-9]+$ || "$HEAD_BRANCH" =~ ^(feat|fix|docs|chore|codex)/.+$ ]] || {
+              echo "Pull requests into develop must come from a synchronization or approved topic branch." >&2
               exit 1
             }
           else
@@ -70,6 +70,7 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - run: npm ci
+      - run: npm run test:skill
       - id: package
         name: Pack the release candidate exactly once
         shell: bash

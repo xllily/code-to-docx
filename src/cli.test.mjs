@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import { spawnSync } from "child_process";
 import mammoth from "mammoth";
+import { version } from "./version.mjs";
 
 const cliPath = path.resolve(process.cwd(), "src/index.mjs");
 const permissionTest = process.platform === "win32" || process.getuid?.() === 0 ? test.skip : test;
@@ -26,6 +27,14 @@ describe("code-to-docx CLI", () => {
 
   afterEach(async () => {
     await fs.promises.rm(fixtureRoot, { recursive: true, force: true });
+  });
+
+  test("reports the generated package version", () => {
+    const result = runCli(["--version"]);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout.trim()).toBe(version);
   });
 
   test("dry-run emits a machine-readable manifest without writing a document", () => {
