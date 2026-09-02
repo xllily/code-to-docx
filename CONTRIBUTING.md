@@ -2,6 +2,8 @@
 
 Thanks for improving `code-to-docx`.
 
+Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Development
 
 Requirements:

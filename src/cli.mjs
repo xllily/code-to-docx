@@ -58,7 +58,7 @@ function createProgram() {
     .name("code-to-docx")
     .alias("c2d")
     .description("Create a file-aware DOCX archive from source code")
-    .version(version ?? process.env.npm_package_version, "-v, --version", "Output the current version")
+    .version(version, "-v, --version", "Output the current version")
     .requiredOption("-s, --source <path>", "Source directory to scan")
     .option("-t, --type <extensions>", "Comma-separated file extensions", DEFAULT_EXTENSIONS.join(","))
     .option("-o, --output <path>", "Output DOCX path", "output.docx")
